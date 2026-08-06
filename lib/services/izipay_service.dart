@@ -75,35 +75,58 @@ class IzipayService {
     return cents.toString().padLeft(3, '0');
   }
 
-  /// Headers alineados al `IzipayService` de `techbot_travelcab` que
-  /// funciona en producción (Hotel Pullman) contra el mismo pinpad
-  /// P400. El header `ngrok-skip-browser-warning` evita la landing
-  /// HTML de ngrok cuando la URL del pinpad está tuneleada (ngrok
-  /// inspecciona el User-Agent y devuelve HTML a clientes no-browser
-  /// sin ese header). En LAN directa no daña.
+  /// Headers que replican EXACTAMENTE lo que manda Postman por default
+  /// (verificado por Javier 2026-08-06: Postman con solo Content-Type
+  /// funciona 200, mi APK con solo Content-Type falla 401 → la
+  /// diferencia son los headers automáticos que Postman agrega y
+  /// Dart no).
+  ///
+  /// Hipótesis probables:
+  ///   1. Spring Security tiene filter que bloquea por User-Agent
+  ///      (`Dart/x.x (dart:io)` cae fuera de whitelist).
+  ///   2. Dart http usa chunked transfer-encoding sin Content-Length,
+  ///      el server lo rechaza.
+  ///
+  /// Fix: emular UA de Postman + Accept `*/*` explícito.
   Map<String, String> _headers({String? bearer}) => {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
+        'Accept': '*/*',
+        'User-Agent': 'PostmanRuntime/7.32.3',
+        'Cache-Control': 'no-cache',
         if (bearer != null) 'Authorization': 'Bearer $bearer',
       };
 
   Future<String> _login(IzipayConfigSnapshot cfg) async {
-    final resp = await http.post(
-      _url(cfg, 'login'),
-      headers: _headers(),
-      body: jsonEncode({'ecr_usuario': cfg.user, 'ecr_password': cfg.password}),
-    ).timeout(const Duration(seconds: _boxTimeoutSeconds));
+    // Usamos http.Client + Request para poder setear Content-Length
+    // manualmente (fuerza no-chunked transfer, que algunos Spring
+    // Boot embedded servers rechazan con 401).
+    final bodyStr = jsonEncode(
+      {'ecr_usuario': cfg.user, 'ecr_password': cfg.password},
+    );
+    final bodyBytes = utf8.encode(bodyStr);
+
+    final request = http.Request('POST', _url(cfg, 'login'));
+    request.headers.addAll(_headers());
+    request.headers['Content-Length'] = bodyBytes.length.toString();
+    request.bodyBytes = bodyBytes;
+
+    final streamed = await http.Client()
+        .send(request)
+        .timeout(const Duration(seconds: _boxTimeoutSeconds));
+    final resp = await http.Response.fromStream(streamed);
 
     if (resp.statusCode != 200) {
       throw IzipayException(
-        'Login rechazado (HTTP ${resp.statusCode}): ${resp.body}',
+        'Login rechazado (HTTP ${resp.statusCode}). '
+        'Response headers: ${resp.headers}. Body: ${resp.body}',
       );
     }
     final data = jsonDecode(resp.body) as Map<String, dynamic>;
     if (data['resultado'] != '00' || data['token'] is! String) {
+      // El pinpad responde 'mensaje' (no 'message') — verificado en
+      // el response OK de Postman de Javier 2026-08-06.
       throw IzipayException(
-        'Login rechazado: ${data['message'] ?? data['resultado']}',
+        'Login rechazado: ${data['mensaje'] ?? data['message'] ?? data['resultado']}',
       );
     }
     return data['token'] as String;
