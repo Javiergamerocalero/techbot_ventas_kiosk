@@ -75,25 +75,23 @@ class IzipayService {
     return cents.toString().padLeft(3, '0');
   }
 
-  /// Header HTTP Basic con las mismas credenciales del pinpad. El
-  /// servicio Spring Boot que envuelve al PMP-API tiene Spring
-  /// Security con HTTP Basic activo por default — sin este header,
-  /// el filter rechaza el request con 401 antes de que el controller
-  /// del `/login` procese el JSON body. El spec del PDF no lo
-  /// documenta explícitamente pero es el comportamiento observado
-  /// en el pinpad real (Javier 2026-08-06, terminal 192.168.9.101).
-  String _basicAuthHeader(IzipayConfigSnapshot cfg) {
-    final creds = '${cfg.user}:${cfg.password}';
-    return 'Basic ${base64Encode(utf8.encode(creds))}';
-  }
+  /// Headers alineados al `IzipayService` de `techbot_travelcab` que
+  /// funciona en producción (Hotel Pullman) contra el mismo pinpad
+  /// P400. El header `ngrok-skip-browser-warning` evita la landing
+  /// HTML de ngrok cuando la URL del pinpad está tuneleada (ngrok
+  /// inspecciona el User-Agent y devuelve HTML a clientes no-browser
+  /// sin ese header). En LAN directa no daña.
+  Map<String, String> _headers({String? bearer}) => {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+        if (bearer != null) 'Authorization': 'Bearer $bearer',
+      };
 
   Future<String> _login(IzipayConfigSnapshot cfg) async {
     final resp = await http.post(
       _url(cfg, 'login'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': _basicAuthHeader(cfg),
-      },
+      headers: _headers(),
       body: jsonEncode({'ecr_usuario': cfg.user, 'ecr_password': cfg.password}),
     ).timeout(const Duration(seconds: _boxTimeoutSeconds));
 
@@ -127,13 +125,7 @@ class IzipayService {
     Future<http.Response> doPost(String token) => http
         .post(
           _url(cfg, path),
-          headers: {
-            'Content-Type': 'application/json',
-            // Bearer token que devolvió /login (JWT del pinpad).
-            // Según spec (secciones 3.2 y 3.3), /test y
-            // /procesarTransaccion se autentican solo con Bearer.
-            'Authorization': 'Bearer $token',
-          },
+          headers: _headers(bearer: token),
           body: jsonEncode(body),
         )
         .timeout(timeout ?? const Duration(seconds: _boxTimeoutSeconds));
