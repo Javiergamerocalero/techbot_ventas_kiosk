@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ventas_kiosko/helpers/employee_purchase_hook.dart';
 import 'package:ventas_kiosko/providers/config/app_dimensions_provider.dart';
 import 'package:ventas_kiosko/providers/printer/printer_provider.dart';
 import 'package:ventas_kiosko/screens/payment_success_screen.dart';
@@ -90,6 +91,14 @@ class _IzipayPaymentScreenState extends ConsumerState<IzipayPaymentScreen> {
 
       // Imprimir voucher — no bloqueamos el éxito si la impresión falla.
       await _tryPrintVoucher(result.printData);
+
+      // San Fernando: registrar la compra contra el validador si hay
+      // sesión de empleado activa. Idempotente por sesión.
+      await EmployeePurchaseHook.registerIfEmployeeSession(
+        ref,
+        amount: widget.amount,
+        externalReference: result.approvalCode,
+      );
 
       if (!mounted) return;
       setState(() {

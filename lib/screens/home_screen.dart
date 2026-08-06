@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:ventas_kiosko/providers/utils/timer_provider.dart';
 import 'package:ventas_kiosko/providers/cart/cart_provider.dart';
-import 'package:ventas_kiosko/screens/products_screen.dart';
+import 'package:ventas_kiosko/screens/employee_auth_screen.dart';
 // import 'package:ventas_kiosko/styles/app_styles.dart';
 import 'package:ventas_kiosko/widgets/config/access_dialog_widget.dart';
 import 'package:ventas_kiosko/providers/utils/products_sync_provider.dart';
@@ -117,8 +117,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
 
                 ref.read(timerProvider.notifier).start(mainTime);
                 if (mounted) {
+                  // San Fernando: antes del catálogo, el empleado debe
+                  // identificarse. La EmployeeAuthScreen navega a
+                  // ProductsScreen por pushReplacement cuando valida OK.
                   // ignore: use_build_context_synchronously
-                  Navigator.of(context).pushNamed(ProductsScreen.routeName);
+                  Navigator.of(context)
+                      .pushNamed(EmployeeAuthScreen.routeName);
                 }
               };
             },

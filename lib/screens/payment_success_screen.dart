@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ventas_kiosko/helpers/employee_purchase_hook.dart';
+import 'package:ventas_kiosko/providers/cart/cart_provider.dart';
 import 'package:ventas_kiosko/providers/utils/timer_provider.dart';
 import 'package:ventas_kiosko/widgets/utils/linear_timer.dart';
 import '../styles/app_styles.dart';
@@ -21,6 +23,17 @@ class PaymentSuccessScreen extends ConsumerWidget {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (timer <= 0) {
         ref.read(timerProvider.notifier).start(secondary);
+      }
+      // San Fernando: si hay sesión de empleado activa y el hook no
+      // fue disparado desde IzipayPaymentScreen (que ya la habría
+      // limpiado), registrar la compra ahora con el total del carrito.
+      // Idempotente por sesión (registrar limpia el session).
+      final totalPrice = ref.read(cartTotalPriceProvider);
+      if (totalPrice > 0) {
+        EmployeePurchaseHook.registerIfEmployeeSession(
+          ref,
+          amount: totalPrice,
+        );
       }
     });
 

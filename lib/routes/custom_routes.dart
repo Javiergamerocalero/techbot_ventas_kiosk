@@ -23,6 +23,7 @@ import 'package:ventas_kiosko/models/products/product.dart';
 import 'package:ventas_kiosko/models/combos/combo.dart';
 import 'package:ventas_kiosko/screens/cashdro_payment_screen.dart';
 import 'package:ventas_kiosko/screens/payment_izipay_screen.dart';
+import 'package:ventas_kiosko/screens/employee_auth_screen.dart';
 
 
 var customRoutes = <String, WidgetBuilder>{
@@ -41,6 +42,7 @@ var customRoutes = <String, WidgetBuilder>{
   ConfigNiubizIm30Screen.routeName: (_) => const ConfigNiubizIm30Screen(),
   ConfigIzipayScreen.routeName: (_) => const ConfigIzipayScreen(),
   ConfigCashdroScreen.routeName: (_) => const ConfigCashdroScreen(),
+  EmployeeAuthScreen.routeName: (_) => const EmployeeAuthScreen(),
 };
 
 Route<dynamic> generateRoute(RouteSettings settings) {
