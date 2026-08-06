@@ -22,6 +22,7 @@ import 'package:ventas_kiosko/screens/config/config_cashdro_screen.dart';
 import 'package:ventas_kiosko/models/products/product.dart';
 import 'package:ventas_kiosko/models/combos/combo.dart';
 import 'package:ventas_kiosko/screens/cashdro_payment_screen.dart';
+import 'package:ventas_kiosko/screens/payment_izipay_screen.dart';
 
 
 var customRoutes = <String, WidgetBuilder>{
@@ -84,6 +85,14 @@ Route<dynamic> generateRoute(RouteSettings settings) {
           ticketId: args?['ticketId'] as String?,
           invoiceData: args?['invoiceData'] as Map<String, dynamic>?,
           paymentMethod: args?['paymentMethod'] as Map<String, dynamic>?,
+        ),
+      );
+    case IzipayPaymentScreen.routeName:
+      final args = settings.arguments as Map<String, dynamic>?;
+      return MaterialPageRoute(
+        builder: (_) => IzipayPaymentScreen(
+          amount: args?['amount'] as double? ?? 0.0,
+          invoiceData: args?['invoiceData'] as Map<String, dynamic>?,
         ),
       );
     default:

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/config/payment_method.dart';
 import '../screens/cashdro_payment_screen.dart';
+import '../screens/payment_izipay_screen.dart';
 import '../screens/payment_standby_screen.dart';
 
 /// Helper para manejar la navegación condicional según el método de pago
@@ -23,6 +24,8 @@ class PaymentNavigationHelper {
 
       if (isCashDroPayment(paymentMethod.type)) {
         await _navigateToCashDroPayment(context, paymentMethod, invoiceData, amount);
+      } else if (isIzipayPayment(paymentMethod.type)) {
+        await _navigateToIzipayPayment(context, invoiceData, amount);
       } else {
         await _navigateToStandardPayment(context, paymentMethod, invoiceData);
       }
@@ -46,6 +49,23 @@ class PaymentNavigationHelper {
       case PaymentMethodType.izipay:
         return false;
     }
+  }
+
+  /// Determina si el método de pago es Izipay (PinPad P400 vía API REST).
+  static bool isIzipayPayment(PaymentMethodType type) =>
+      type == PaymentMethodType.izipay;
+
+  /// Navega a IzipayPaymentScreen (PinPad Izipay en dispositivo Windows).
+  static Future<void> _navigateToIzipayPayment(
+    BuildContext context,
+    Map<String, dynamic> invoiceData,
+    double amount,
+  ) async {
+    print('💳 Navegando a IzipayPaymentScreen (amount=$amount)');
+    Navigator.of(context).pushNamed(
+      IzipayPaymentScreen.routeName,
+      arguments: {'amount': amount, 'invoiceData': invoiceData},
+    );
   }
 
   /// Navega a CashDroPaymentScreen
