@@ -75,10 +75,25 @@ class IzipayService {
     return cents.toString().padLeft(3, '0');
   }
 
+  /// Header HTTP Basic con las mismas credenciales del pinpad. El
+  /// servicio Spring Boot que envuelve al PMP-API tiene Spring
+  /// Security con HTTP Basic activo por default — sin este header,
+  /// el filter rechaza el request con 401 antes de que el controller
+  /// del `/login` procese el JSON body. El spec del PDF no lo
+  /// documenta explícitamente pero es el comportamiento observado
+  /// en el pinpad real (Javier 2026-08-06, terminal 192.168.9.101).
+  String _basicAuthHeader(IzipayConfigSnapshot cfg) {
+    final creds = '${cfg.user}:${cfg.password}';
+    return 'Basic ${base64Encode(utf8.encode(creds))}';
+  }
+
   Future<String> _login(IzipayConfigSnapshot cfg) async {
     final resp = await http.post(
       _url(cfg, 'login'),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': _basicAuthHeader(cfg),
+      },
       body: jsonEncode({'ecr_usuario': cfg.user, 'ecr_password': cfg.password}),
     ).timeout(const Duration(seconds: _boxTimeoutSeconds));
 
@@ -114,6 +129,9 @@ class IzipayService {
           _url(cfg, path),
           headers: {
             'Content-Type': 'application/json',
+            // Bearer token que devolvió /login (JWT del pinpad).
+            // Según spec (secciones 3.2 y 3.3), /test y
+            // /procesarTransaccion se autentican solo con Bearer.
             'Authorization': 'Bearer $token',
           },
           body: jsonEncode(body),
