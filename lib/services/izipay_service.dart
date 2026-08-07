@@ -75,50 +75,42 @@ class IzipayService {
     return cents.toString().padLeft(3, '0');
   }
 
-  /// Headers que replican EXACTAMENTE lo que manda Postman por default
-  /// (verificado por Javier 2026-08-06: Postman con solo Content-Type
-  /// funciona 200, mi APK con solo Content-Type falla 401 → la
-  /// diferencia son los headers automáticos que Postman agrega y
-  /// Dart no).
-  ///
-  /// Hipótesis probables:
-  ///   1. Spring Security tiene filter que bloquea por User-Agent
-  ///      (`Dart/x.x (dart:io)` cae fuera de whitelist).
-  ///   2. Dart http usa chunked transfer-encoding sin Content-Length,
-  ///      el server lo rechaza.
-  ///
-  /// Fix: emular UA de Postman + Accept `*/*` explícito.
+  /// Headers mínimos absolutos — matcheando el Postman de Javier
+  /// que responde 200 con solo Content-Type + body JSON. Sin
+  /// User-Agent custom, sin Accept, sin Cache-Control — dejamos que
+  /// Dart mande sus defaults naturales para que el resultado sea el
+  /// "cliente simple" más parecido a Postman.
   Map<String, String> _headers({String? bearer}) => {
         'Content-Type': 'application/json',
-        'Accept': '*/*',
-        'User-Agent': 'PostmanRuntime/7.32.3',
-        'Cache-Control': 'no-cache',
         if (bearer != null) 'Authorization': 'Bearer $bearer',
       };
 
   Future<String> _login(IzipayConfigSnapshot cfg) async {
-    // Usamos http.Client + Request para poder setear Content-Length
-    // manualmente (fuerza no-chunked transfer, que algunos Spring
-    // Boot embedded servers rechazan con 401).
     final bodyStr = jsonEncode(
       {'ecr_usuario': cfg.user, 'ecr_password': cfg.password},
     );
-    final bodyBytes = utf8.encode(bodyStr);
+    final url = _url(cfg, 'login');
+    final headers = _headers();
 
-    final request = http.Request('POST', _url(cfg, 'login'));
-    request.headers.addAll(_headers());
-    request.headers['Content-Length'] = bodyBytes.length.toString();
-    request.bodyBytes = bodyBytes;
-
-    final streamed = await http.Client()
-        .send(request)
+    // Usamos http.post() plano (no Request explícito) para que Dart
+    // maneje Content-Length y todos los defaults como cualquier
+    // cliente HTTP normal. En r4 forzamos Content-Length manual y
+    // sigue fallando → NO era el chunked encoding.
+    final resp = await http
+        .post(url, headers: headers, body: bodyStr)
         .timeout(const Duration(seconds: _boxTimeoutSeconds));
-    final resp = await http.Response.fromStream(streamed);
 
     if (resp.statusCode != 200) {
+      // Diagnóstico completo: URL exacta + headers exactos que
+      // enviamos + response completo. Con esto podemos comparar 1:1
+      // con lo que manda Postman.
       throw IzipayException(
-        'Login rechazado (HTTP ${resp.statusCode}). '
-        'Response headers: ${resp.headers}. Body: ${resp.body}',
+        'Login rechazado (HTTP ${resp.statusCode}).\n\n'
+        'URL: $url\n'
+        'Request headers: $headers\n'
+        'Request body: $bodyStr\n\n'
+        'Response headers: ${resp.headers}\n'
+        'Response body: ${resp.body}',
       );
     }
     final data = jsonDecode(resp.body) as Map<String, dynamic>;
