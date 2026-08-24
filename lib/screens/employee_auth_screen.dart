@@ -155,17 +155,29 @@ class _EmployeeAuthScreenState extends ConsumerState<EmployeeAuthScreen> {
                     ),
                   ),
                   SizedBox(height: d.spacingXL),
+                  // Per Javier 2026-08-24: agrandar el toggle DNI/Código
+                  // para que se lea con facilidad desde el kiosco.
                   SegmentedButton<EmployeeIdentifierType>(
-                    segments: const [
+                    style: SegmentedButton.styleFrom(
+                      textStyle: TextStyle(
+                        fontSize: d.fontSizeBody * 1.3,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: d.spacingL,
+                        vertical: d.spacingM,
+                      ),
+                    ),
+                    segments: [
                       ButtonSegment(
                         value: EmployeeIdentifierType.dni,
-                        label: Text('DNI'),
-                        icon: Icon(Icons.badge),
+                        label: const Text('DNI'),
+                        icon: Icon(Icons.badge, size: d.iconSizeM),
                       ),
                       ButtonSegment(
                         value: EmployeeIdentifierType.employeeCode,
-                        label: Text('Código'),
-                        icon: Icon(Icons.tag),
+                        label: const Text('Código'),
+                        icon: Icon(Icons.tag, size: d.iconSizeM),
                       ),
                     ],
                     selected: {_type},

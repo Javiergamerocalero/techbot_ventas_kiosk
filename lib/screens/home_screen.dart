@@ -1,4 +1,3 @@
-import 'dart:async' as async;
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 
@@ -9,6 +8,7 @@ import 'package:ventas_kiosko/providers/cart/cart_provider.dart';
 import 'package:ventas_kiosko/screens/employee_auth_screen.dart';
 // import 'package:ventas_kiosko/styles/app_styles.dart';
 import 'package:ventas_kiosko/widgets/config/access_dialog_widget.dart';
+import 'package:ventas_kiosko/widgets/home/standby_background.dart';
 import 'package:ventas_kiosko/providers/utils/products_sync_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -21,14 +21,14 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStateMixin {
-  late PageController _pageController;
-  async.Timer? _timer;
-  int _currentPage = 0;
   bool _isSyncingProducts = false;
-  
-  final List<String> _carouselImages = [
+
+  // Per Javier 2026-08-24: el fondo puede ser video local o carrusel
+  // de imágenes — ambos casos los maneja StandbyBackground. Estas
+  // imágenes son el fallback cuando no hay video configurado.
+  static const List<String> _carouselImages = [
     'assets/images/1.png',
-    'assets/images/3.png', 
+    'assets/images/3.png',
     'assets/images/2.png',
   ];
 
@@ -41,28 +41,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
       _checkAndClearCart();
     });
     print('🏠 HomeScreen: Proceso de limpieza iniciado');
-    
-    // Inicializar carousel
-    _pageController = PageController();
-    _startAutoSlide();
-  }
-
-  void _startAutoSlide() {
-    _timer = async.Timer.periodic(const Duration(seconds: 4), (timer) {
-      if (_currentPage < _carouselImages.length - 1) {
-        _currentPage++;
-      } else {
-        _currentPage = 0;
-      }
-      
-      if (_pageController.hasClients) {
-        _pageController.animateToPage(
-          _currentPage,
-          duration: const Duration(milliseconds: 800),
-          curve: Curves.easeInOut,
-        );
-      }
-    });
   }
 
   Future<void> _checkAndClearCart() async {
@@ -81,17 +59,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   }
 
   @override
-  void dispose() {
-    _timer?.cancel();
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final screenWidth = MediaQuery.sizeOf(context).width;
-
     final mainTime = ref.watch(mainDurationProvider);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -140,32 +108,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
             },
           ),
         },
-        child: Stack(
-          children: [
-            // Carousel de imágenes de fondo
-            SizedBox(
-              width: screenWidth,
-              height: screenHeight,
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: _carouselImages.length,
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentPage = index;
-                  });
-                },
-                itemBuilder: (context, index) {
-                  return Image.asset(
-                    _carouselImages[index],
-                    fit: BoxFit.cover,
-                    width: screenWidth,
-                    height: screenHeight,
-                  );
-                },
-              ),
-            ),
-           
-          ],
+        // Fondo de standby: video local si el operador cargó uno,
+        // sino carrusel de imágenes por defecto.
+        child: const StandbyBackground(
+          carouselImages: _carouselImages,
         ),
       ),
           if (_isSyncingProducts)

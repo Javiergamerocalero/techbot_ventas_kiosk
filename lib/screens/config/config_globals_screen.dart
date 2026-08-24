@@ -1,6 +1,10 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -28,11 +32,92 @@ class ConfigGlobalsScreen extends ConsumerStatefulWidget {
 }
 
 class _ConfigGlobalsScreenState extends ConsumerState<ConfigGlobalsScreen> {
+  static const String _kStandbyVideoPathKey = 'standby_video_path';
+
   late int _licenseId;
 
   final _nombreQuioscoController = TextEditingController();
   final _nombreQuioscoFocusNode = FocusNode();
   bool _isRefreshing = false;
+  String? _standbyVideoPath;
+
+  Future<void> _pickStandbyVideo() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.video,
+        allowMultiple: false,
+      );
+      if (result == null || result.files.isEmpty) return;
+      final src = result.files.single.path;
+      if (src == null || src.isEmpty) return;
+
+      // Copiar a app private storage — el path original del picker
+      // puede quedar inaccesible después (permisos scoped storage).
+      final dir = await getApplicationDocumentsDirectory();
+      final ext = src.contains('.') ? src.substring(src.lastIndexOf('.')) : '.mp4';
+      final destPath = '${dir.path}/standby_video$ext';
+      final destFile = File(destPath);
+      if (destFile.existsSync()) {
+        await destFile.delete();
+      }
+      await File(src).copy(destPath);
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kStandbyVideoPathKey, destPath);
+
+      if (!mounted) return;
+      setState(() => _standbyVideoPath = destPath);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          content: Text(
+            'Video de standby guardado.',
+            style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+            textAlign: TextAlign.center,
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Theme.of(context).colorScheme.error,
+          content: Text(
+            'No se pudo cargar el video: $e',
+            style: TextStyle(color: Theme.of(context).colorScheme.onError),
+            textAlign: TextAlign.center,
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Future<void> _removeStandbyVideo() async {
+    final prefs = await SharedPreferences.getInstance();
+    final path = prefs.getString(_kStandbyVideoPathKey);
+    if (path != null && path.isNotEmpty) {
+      try {
+        final f = File(path);
+        if (f.existsSync()) await f.delete();
+      } catch (_) {}
+    }
+    await prefs.remove(_kStandbyVideoPathKey);
+    if (!mounted) return;
+    setState(() => _standbyVideoPath = null);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        content: Text(
+          'Video eliminado. Volverá el carrusel de imágenes.',
+          style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+          textAlign: TextAlign.center,
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
 
   Future<void> _refreshThemeOnly() async {
     try {
@@ -179,6 +264,7 @@ class _ConfigGlobalsScreenState extends ConsumerState<ConfigGlobalsScreen> {
     setState(() {
       _licenseId = ref.read(licenseProvider).value!.id;
       _nombreQuioscoController.text = prefs.getString('nombreQuiosco') ?? '';
+      _standbyVideoPath = prefs.getString(_kStandbyVideoPathKey);
     });
   }
 
@@ -270,6 +356,12 @@ class _ConfigGlobalsScreenState extends ConsumerState<ConfigGlobalsScreen> {
             SizedBox(height: d.spacingS),
             _buildInvoiceSuspendCard(suspended: invoiceSuspended, d: d, colorScheme: colorScheme),
 
+            /////////////// Video de Standby ///////////////
+            _buildDivider(d),
+            _buildSectionTitle('Video de Standby:', d, colorScheme),
+            SizedBox(height: d.spacingS),
+            _buildStandbyVideoCard(d: d, colorScheme: colorScheme),
+
             /////////////// Aplicación ///////////////
             _buildDivider(d),
             _buildSectionTitle('Aplicación ($appVersion):', d, colorScheme),
@@ -342,6 +434,83 @@ class _ConfigGlobalsScreenState extends ConsumerState<ConfigGlobalsScreen> {
     return Container(
       padding: EdgeInsets.symmetric(vertical: d.spacingL),
       child: Divider(color: Colors.black12),
+    );
+  }
+
+  /// Tarjeta para elegir/quitar el video local que se reproduce en el
+  /// standby en lugar del carrusel de imágenes. Per Javier 2026-08-24.
+  Widget _buildStandbyVideoCard({
+    required AppDimensions d,
+    required ColorScheme colorScheme,
+  }) {
+    final hasVideo = _standbyVideoPath != null && _standbyVideoPath!.isNotEmpty;
+    final fileName = hasVideo
+        ? _standbyVideoPath!.split(RegExp(r'[/\\]')).last
+        : null;
+    return Card(
+      color: colorScheme.surfaceContainerLowest,
+      elevation: d.blurRadius * 0.5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(d.borderRadiusM)),
+      child: Padding(
+        padding: d.paddingM,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  hasVideo ? Icons.movie : Icons.movie_outlined,
+                  color: hasVideo ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                  size: d.iconSizeM,
+                ),
+                SizedBox(width: d.spacingS),
+                Expanded(
+                  child: Text(
+                    hasVideo ? 'Video actual: $fileName' : 'Sin video (se usa el carrusel).',
+                    style: AppTextStyles.body(d).copyWith(
+                      color: colorScheme.onSurface,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: d.spacingM),
+            Text(
+              'MP4 en loop, sin audio. Se copia al almacenamiento privado de la app.',
+              style: AppTextStyles.caption(d).copyWith(
+                color: colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            SizedBox(height: d.spacingM),
+            Row(
+              children: [
+                Expanded(
+                  child: CustomButton(
+                    text: hasVideo ? 'Cambiar video' : 'Elegir video',
+                    onPressed: _pickStandbyVideo,
+                    dimensions: d,
+                    variant: ButtonVariant.primary,
+                  ),
+                ),
+                if (hasVideo) ...[
+                  SizedBox(width: d.spacingM),
+                  Expanded(
+                    child: CustomButton(
+                      text: 'Quitar',
+                      onPressed: _removeStandbyVideo,
+                      dimensions: d,
+                      variant: ButtonVariant.neutral,
+                      isOutlined: true,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 

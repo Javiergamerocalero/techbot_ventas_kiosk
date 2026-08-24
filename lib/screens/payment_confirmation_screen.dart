@@ -82,63 +82,93 @@ class _PaymentConfirmationScreenState extends ConsumerState<PaymentConfirmationS
                           separatorBuilder: (context, index) => SizedBox(height: d.spacingM),
                             itemBuilder: (context, index) {
                               if (index < cart.items.length) {
-                                // Mostrar producto
+                                // Mostrar producto. Per Javier 2026-08-24:
+                                // imagen más grande y contador centrado
+                                // (antes la imagen era chica y el x1
+                                // quedaba pegado a la izquierda del
+                                // trailing).
                                 final item = cart.items[index];
                                 return Card(
-                                  child: ListTile(
-                                    leading: Container(
-                                      width: d.imageSizeS,
-                                      height: d.imageSizeS * 0.8, // Altura rectangular como en ProductsScreen
-                                      decoration: BoxDecoration(
-                                        color: Colors.white, // Fondo blanco para mejor contraste
-                                        borderRadius: BorderRadius.circular(d.borderRadiusM),
-                                      ),
-                                      child: CachedProductImage(
-                                        product: item.product,
-                                        width: double.infinity,
-                                        height: d.imageSizeS * 0.8,
-                                        fit: BoxFit.contain,
-                                        borderRadius: BorderRadius.circular(d.borderRadiusM),
-                                      ),
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: d.spacingM,
+                                      vertical: d.spacingS,
                                     ),
-                                    title: Text(item.product.name, style: AppTextStyles.body(d)),
-                                    subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
                                       children: [
-                                        if (item.selectedVariation != null) ...[
-                                          Text(
-                                            item.selectedVariation!.formattedAttributes,
-                                            style: AppTextStyles.caption(d).copyWith(
-                                              color: colorScheme.onSurfaceVariant,
-                                              fontStyle: FontStyle.italic,
-                                            ),
+                                        Container(
+                                          width: d.imageSizeL,
+                                          height: d.imageSizeL,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(
+                                                d.borderRadiusM),
                                           ),
-                                          SizedBox(height: d.spacingXS * 0.5),
-                                        ],
-                                        Text('$currencySymbol${item.totalPrice.toStringAsFixed(2)}', style: AppTextStyles.price(d)),
-                                      ],
-                                    ),
-                                    trailing: Container(
-                                      width: d.iconSizeL * 1.5,
-                                      height: d.iconSizeM * 1.2,
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: d.spacingS,
-                                        vertical: d.spacingXS,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: colorScheme.onSurface.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(d.borderRadiusS),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          'x${item.quantity}',
-                                          style: AppTextStyles.body(d).copyWith(
-                                            color: colorScheme.onSurface,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: d.fontSizeCaption * 1.1,
+                                          child: CachedProductImage(
+                                            product: item.product,
+                                            width: double.infinity,
+                                            height: d.imageSizeL,
+                                            fit: BoxFit.contain,
+                                            borderRadius: BorderRadius.circular(
+                                                d.borderRadiusM),
                                           ),
                                         ),
-                                      ),
+                                        SizedBox(width: d.spacingM),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(item.product.name,
+                                                  style: AppTextStyles.body(d)),
+                                              if (item.selectedVariation != null) ...[
+                                                SizedBox(
+                                                    height: d.spacingXS * 0.5),
+                                                Text(
+                                                  item.selectedVariation!
+                                                      .formattedAttributes,
+                                                  style: AppTextStyles.caption(d)
+                                                      .copyWith(
+                                                    color: colorScheme
+                                                        .onSurfaceVariant,
+                                                    fontStyle: FontStyle.italic,
+                                                  ),
+                                                ),
+                                              ],
+                                              SizedBox(height: d.spacingXS),
+                                              Text(
+                                                '$currencySymbol${item.totalPrice.toStringAsFixed(2)}',
+                                                style: AppTextStyles.price(d),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        SizedBox(width: d.spacingM),
+                                        Container(
+                                          alignment: Alignment.center,
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: d.spacingM,
+                                            vertical: d.spacingS,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: colorScheme.onSurface
+                                                .withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(
+                                                d.borderRadiusS),
+                                          ),
+                                          child: Text(
+                                            'x${item.quantity}',
+                                            textAlign: TextAlign.center,
+                                            style: AppTextStyles.body(d).copyWith(
+                                              color: colorScheme.onSurface,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: d.fontSizeBody,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 );
@@ -147,53 +177,84 @@ class _PaymentConfirmationScreenState extends ConsumerState<PaymentConfirmationS
                                 final comboIndex = index - cart.items.length;
                                 final comboItem = cart.comboItems[comboIndex];
                                 return Card(
-                                  child: ListTile(
-                                    leading: Container(
-                                      width: d.imageSizeS,
-                                      height: d.imageSizeS * 0.8, // Altura rectangular como en ProductsScreen
-                                      decoration: BoxDecoration(
-                                        color: Colors.white, // Fondo blanco para mejor contraste
-                                        borderRadius: BorderRadius.circular(d.borderRadiusM),
-                                      ),
-                                      child: CachedComboImage(
-                                        combo: comboItem.combo,
-                                        width: double.infinity,
-                                        height: d.imageSizeS * 0.8,
-                                        fit: BoxFit.contain,
-                                        borderRadius: BorderRadius.circular(d.borderRadiusM),
-                                      ),
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: d.spacingM,
+                                      vertical: d.spacingS,
                                     ),
-                                    title: Row(
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
                                       children: [
-                                        Icon(Icons.restaurant_menu, size: d.iconSizeS * 0.8, color: colorScheme.onPrimary),
-                                        SizedBox(width: d.spacingXS),
-                                        Expanded(
-                                          child: Text(comboItem.combo.name, style: AppTextStyles.body(d)),
-                                        ),
-                                      ],
-                                    ),
-                                    subtitle: Text('$currencySymbol${comboItem.totalPrice.toStringAsFixed(2)}', style: AppTextStyles.price(d)),
-                                    trailing: Container(
-                                      width: d.iconSizeL * 1.5,
-                                      height: d.iconSizeM * 1.2,
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: d.spacingS,
-                                        vertical: d.spacingXS,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: colorScheme.onSurface.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(d.borderRadiusS),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          'x${comboItem.quantity}',
-                                          style: AppTextStyles.body(d).copyWith(
-                                            color: colorScheme.onSurface,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: d.fontSizeCaption * 1.1,
+                                        Container(
+                                          width: d.imageSizeL,
+                                          height: d.imageSizeL,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(
+                                                d.borderRadiusM),
+                                          ),
+                                          child: CachedComboImage(
+                                            combo: comboItem.combo,
+                                            width: double.infinity,
+                                            height: d.imageSizeL,
+                                            fit: BoxFit.contain,
+                                            borderRadius: BorderRadius.circular(
+                                                d.borderRadiusM),
                                           ),
                                         ),
-                                      ),
+                                        SizedBox(width: d.spacingM),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Icon(Icons.restaurant_menu,
+                                                      size: d.iconSizeS * 0.8,
+                                                      color: colorScheme.primary),
+                                                  SizedBox(width: d.spacingXS),
+                                                  Expanded(
+                                                    child: Text(
+                                                        comboItem.combo.name,
+                                                        style:
+                                                            AppTextStyles.body(d)),
+                                                  ),
+                                                ],
+                                              ),
+                                              SizedBox(height: d.spacingXS),
+                                              Text(
+                                                '$currencySymbol${comboItem.totalPrice.toStringAsFixed(2)}',
+                                                style: AppTextStyles.price(d),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        SizedBox(width: d.spacingM),
+                                        Container(
+                                          alignment: Alignment.center,
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: d.spacingM,
+                                            vertical: d.spacingS,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: colorScheme.onSurface
+                                                .withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(
+                                                d.borderRadiusS),
+                                          ),
+                                          child: Text(
+                                            'x${comboItem.quantity}',
+                                            textAlign: TextAlign.center,
+                                            style: AppTextStyles.body(d).copyWith(
+                                              color: colorScheme.onSurface,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: d.fontSizeBody,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 );

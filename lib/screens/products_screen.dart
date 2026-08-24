@@ -35,7 +35,6 @@ class ProductsScreen extends ConsumerWidget {
     final selectedCategory = ref.watch(selectedCategoryFilterProvider);
     final selectedSubcategory = ref.watch(selectedSubcategoryFilterProvider);
     final filteredProductsAsync = ref.watch(filteredProductsPaginatedProvider);
-    final hasMoreProductsAsync = ref.watch(hasMoreFilteredProductsProvider);
     final loadingMap = ref.watch(buttonLoadingProvider);
     final isActionLoading = loadingMap.entries.any((e) {
       if (e.value != true) return false;
@@ -84,9 +83,15 @@ class ProductsScreen extends ConsumerWidget {
                       key: const PageStorageKey('products_scroll'),
                       child: Column(
                         children: [
-                          // Espacio para el header fijo
-                          SizedBox(height: d.screenHeight * 0.06 + d.appBarHeight * 1.4),
-                          SizedBox(height: d.spacingM),
+                          // Espacio para el header fijo. Per Javier
+                          // 2026-08-24: alinear productos arriba —
+                          // achicamos el gap post-header y quitamos
+                          // el spacingM extra que empujaba todo hacia
+                          // abajo.
+                          SizedBox(
+                            height: d.screenHeight * 0.06 +
+                                d.appBarHeight * 1.4,
+                          ),
                           featuredProductsAsync.when(
                             data: (products) => HorizontalProductsSection(
                               title: 'Más vendidos',
@@ -104,12 +109,12 @@ class ProductsScreen extends ConsumerWidget {
                             loading: () => const SizedBox.shrink(),
                             error: (error, stack) => Center(child: Text('Error: $error')),
                           ),
-                          // Espaciado antes de filtros
-                          SizedBox(height: d.spacingL),
+                          // Espaciado antes/después de filtros
+                          // achicado para subir el grid.
+                          SizedBox(height: d.spacingS),
                           const CategoryFilterChips(),
                           const SubcategoryFilterChips(),
-                          // Espaciado después de filtros
-                          SizedBox(height: d.spacingL),
+                          SizedBox(height: d.spacingS),
                           // Mostrar productos filtrados si hay filtros activos
                           if (selectedCategory != null || selectedSubcategory != null)
                         filteredProductsAsync.when(
@@ -123,54 +128,12 @@ class ProductsScreen extends ConsumerWidget {
                                     ),
                                   ),
                                 )
-                              : Column(
-                                  children: [
-                                    // Grid de productos filtrados
-                                    CategoryProductsGrid(
-                                      products: products,
-                                      maxItems: products.length,
-                                    ),
-                                    // Botón "Ver más" si hay más productos
-                                    hasMoreProductsAsync.when(
-                                      data: (hasMore) => hasMore
-                                          ? Padding(
-                                              padding: EdgeInsets.symmetric(
-                                                horizontal: d.horizontalPadding,
-                                                vertical: d.spacingL,
-                                              ),
-                                              child: GestureDetector(
-                                                onTap: () {
-                                                  final key = selectedSubcategory != null
-                                                      ? 'subcategory_$selectedSubcategory'
-                                                      : 'category_$selectedCategory';
-                                                  ref.read(globalProductsPaginationProvider.notifier).showMore(key);
-                                                },
-                                                child: Container(
-                                                  width: double.infinity,
-                                                  padding: EdgeInsets.symmetric(vertical: d.spacingM),
-                                                  decoration: BoxDecoration(
-                                                    color: colorScheme.primary.withValues(alpha: 0.1),
-                                                    borderRadius: BorderRadius.circular(d.borderRadiusM),
-                                                    border: Border.all(
-                                                      color: colorScheme.primary.withValues(alpha: 0.3),
-                                                      width: d.borderWidth,
-                                                    ),
-                                                  ),
-                                                  child: Text(
-                                                    'Ver más productos',
-                                                    textAlign: TextAlign.center,
-                                                    style: AppTextStyles.button(d).copyWith(
-                                                      color: colorScheme.primary,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            )
-                                          : const SizedBox.shrink(),
-                                      loading: () => const SizedBox.shrink(),
-                                      error: (_, __) => const SizedBox.shrink(),
-                                    ),
-                                  ],
+                              // Per Javier 2026-08-24: sin paginado.
+                              // Mostrar todos los productos filtrados
+                              // en una sola grilla scrolleable.
+                              : CategoryProductsGrid(
+                                  products: products,
+                                  maxItems: products.length,
                                 ),
                           loading: () => Padding(
                             padding: EdgeInsets.all(d.spacingXL),
