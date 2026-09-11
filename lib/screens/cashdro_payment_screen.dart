@@ -13,6 +13,7 @@ import '../../models/config/payment_method.dart';
 import '../../services/cashdro_config_service.dart';
 import './payment_success_screen.dart';
 import './payment_confirmation_screen.dart';
+import '../../providers/cart/cart_provider.dart';
 
 class CashDroPaymentScreen extends ConsumerStatefulWidget {
   static const routeName = '/cashdro-payment';
@@ -127,6 +128,7 @@ class _CashDroPaymentScreenState extends ConsumerState<CashDroPaymentScreen> {
 
     // Limpiar estado del provider ANTES de navegar
     ref.read(cashdroPaymentNotifierProvider.notifier).reset();
+    ref.read(cartNotifierProvider.notifier).clearCart();
 
     // Navegar
     Navigator.of(context).pushReplacementNamed(
@@ -151,6 +153,7 @@ class _CashDroPaymentScreenState extends ConsumerState<CashDroPaymentScreen> {
 
     // Limpiar estado del provider ANTES de navegar
     ref.read(cashdroPaymentNotifierProvider.notifier).reset();
+    ref.read(cartNotifierProvider.notifier).clearCart();
 
     // Navegar
     Navigator.of(context).pushReplacementNamed(

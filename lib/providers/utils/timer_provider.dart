@@ -2,6 +2,7 @@ import 'dart:async' as async;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ventas_kiosko/utils/debug_session_log.dart';
 
 part 'timer_provider.g.dart';
 
@@ -50,13 +51,26 @@ class InactivityTimer extends _$InactivityTimer {
     state = false;
   }
 
-  /// Inicia el timer principal cuando no hay actividad
+  /// Inicia (o reinicia) el timer principal de inactividad.
+  ///
+  /// Siempre vuelve a arrancar: si no se reinicia al montar una
+  /// pantalla nueva, el kiosco hereda un timer ya en 0 (p.ej. después
+  /// de DNI) y dispara TimeUp al instante.
   void startInactivityTimer(int mainDuration) {
-    // Solo iniciar si no está ya corriendo
-    if (!state) {
-      state = true; // Marcar como inactivo (timer principal corriendo)
-      ref.read(timerProvider.notifier).start(mainDuration);
-    }
+    // #region agent log
+    agentDebugLog(
+      location: 'timer_provider.dart:startInactivityTimer',
+      message: 'startInactivityTimer',
+      hypothesisId: 'A',
+      data: {
+        'wasRunning': state,
+        'mainDuration': mainDuration,
+        'timerValue': ref.read(timerProvider),
+      },
+    );
+    // #endregion
+    state = true;
+    ref.read(timerProvider.notifier).start(mainDuration);
   }
 
   /// Detiene completamente el sistema de inactividad

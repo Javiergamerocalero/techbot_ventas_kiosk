@@ -6,6 +6,7 @@ import 'package:ventas_kiosko/screens/time_up_screen.dart';
 import 'package:ventas_kiosko/widgets/utils/linear_timer.dart';
 import 'package:ventas_kiosko/widgets/utils/inactivity_detector.dart';
 import 'package:ventas_kiosko/widgets/cart/cart_header.dart';
+import 'package:ventas_kiosko/widgets/barcode/pre_payment_barcode_scope.dart';
 import 'package:ventas_kiosko/widgets/cart/cart_empty_state.dart';
 import 'package:ventas_kiosko/widgets/cart/cart_items_list.dart';
 import 'package:ventas_kiosko/widgets/cart/cart_summary.dart';
@@ -32,7 +33,8 @@ class CartScreen extends ConsumerWidget {
   
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      body: InactivityDetector(
+      body: PrePaymentBarcodeScope(
+        child: InactivityDetector(
         child: Stack(
           children: [
             Column(
@@ -69,6 +71,7 @@ class CartScreen extends ConsumerWidget {
               ),
           ],
         ),
+      ),
       ),
     );
   }

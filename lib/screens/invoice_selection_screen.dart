@@ -97,10 +97,9 @@ class _InvoiceSelectionScreenState
   }
 
   void _resetTimerOnInput() {
-    // Reiniciar timer cuando el usuario escribe en cualquier input
     if (mounted) {
       final mainDuration = ref.read(mainDurationProvider);
-      ref.read(timerProvider.notifier).start(mainDuration);
+      ref.read(inactivityTimerProvider.notifier).startInactivityTimer(mainDuration);
     }
   }
 

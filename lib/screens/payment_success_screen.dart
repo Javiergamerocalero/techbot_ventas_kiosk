@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ventas_kiosko/helpers/employee_purchase_hook.dart';
 import 'package:ventas_kiosko/providers/cart/cart_provider.dart';
 import 'package:ventas_kiosko/providers/utils/timer_provider.dart';
+import 'package:ventas_kiosko/providers/cart/cart_provider.dart';
 import 'package:ventas_kiosko/widgets/utils/linear_timer.dart';
 import '../styles/app_styles.dart';
 import '../providers/config/app_dimensions_provider.dart';
+import 'package:ventas_kiosko/utils/debug_session_log.dart';
 
 class PaymentSuccessScreen extends ConsumerWidget {
   static const routeName = '/payment-success';
@@ -37,7 +39,9 @@ class PaymentSuccessScreen extends ConsumerWidget {
       }
     });
 
-    handleTimer(context, ref, timer);
+    if (timer > 0) {
+      handleTimer(context, ref, timer);
+    }
     
     return Scaffold(
       body:  Stack(
@@ -70,7 +74,7 @@ class PaymentSuccessScreen extends ConsumerWidget {
                           ),
                         ),
                         onPressed: () {
-                          Navigator.of(context).popUntil((route) => route.isFirst);
+                          _goHome(context, ref);
                         },
                         child: Text(
                           'Volver al inicio', 
@@ -132,11 +136,27 @@ class PaymentSuccessScreen extends ConsumerWidget {
     if (timer == 0) {
       if (ModalRoute.of(context)?.isCurrent ?? false) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          ref.read(timerProvider.notifier).start(ref.read(secondaryDurationProvider));
-          Navigator.popUntil(context, (route) => route.isFirst);
+          _goHome(context, ref);
         });
       }
     }
+  }
+
+  void _goHome(BuildContext context, WidgetRef ref) {
+    final leftover = ref.read(cartTotalItemsProvider);
+    // #region agent log
+    agentDebugLog(
+      location: 'payment_success_screen.dart:_goHome',
+      message: 'Leaving success, clearing cart before popUntil home',
+      hypothesisId: 'C',
+      data: {'leftoverItems': leftover},
+      runId: 'post-fix',
+    );
+    // #endregion
+    ref.read(cartNotifierProvider.notifier).clearCart();
+    ref.read(timerProvider.notifier).reset();
+    ref.read(inactivityTimerProvider.notifier).stopInactivity();
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
 }

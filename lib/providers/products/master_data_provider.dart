@@ -6,6 +6,7 @@ import 'package:ventas_kiosko/models/products/product.dart';
 import 'package:ventas_kiosko/models/categories/subcategory.dart';
 import 'package:ventas_kiosko/services/categories_products_service.dart';
 import 'package:ventas_kiosko/providers/config/license_provider.dart';
+import 'package:ventas_kiosko/utils/product_catalog.dart';
 
 part 'master_data_provider.g.dart';
 
@@ -59,7 +60,9 @@ Future<List<Product>> allProducts(Ref ref) async {
 @Riverpod(keepAlive: true)
 Future<List<Product>> featuredProducts(Ref ref) async {
   final allProducts = await ref.watch(allProductsProvider.future);
-  return allProducts.where((product) => product.isFavorite).toList();
+  return allProducts
+      .where((product) => product.isFavorite && ProductCatalog.isPublishedSku(product.sku))
+      .toList();
 }
 
 /// Provider que obtiene productos por categoría
@@ -74,7 +77,7 @@ Future<List<Product>> productsByCategory(Ref ref, int categoryId) async {
   
   // Si la categoría tiene productos directos, devolverlos
   if (category.products.isNotEmpty) {
-    return category.products;
+    return ProductCatalog.publishedOnly(category.products);
   }
   
   // Si no tiene productos directos, obtener de subcategorías
@@ -85,7 +88,7 @@ Future<List<Product>> productsByCategory(Ref ref, int categoryId) async {
     productsFromSubcategories.addAll(subcategoryProducts);
   }
   
-  return productsFromSubcategories;
+  return ProductCatalog.publishedOnly(productsFromSubcategories);
 }
 
 /// Provider que obtiene productos por subcategoría
@@ -96,7 +99,7 @@ Future<List<Product>> productsBySubcategory(Ref ref, int subcategoryId) async {
   for (final category in categories) {
     for (final subcategory in category.subCategories) {
       if (subcategory.id == subcategoryId) {
-        return subcategory.products;
+        return ProductCatalog.publishedOnly(subcategory.products);
       }
     }
   }

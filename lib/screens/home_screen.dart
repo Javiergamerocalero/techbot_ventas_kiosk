@@ -6,10 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ventas_kiosko/providers/utils/timer_provider.dart';
 import 'package:ventas_kiosko/providers/cart/cart_provider.dart';
 import 'package:ventas_kiosko/screens/employee_auth_screen.dart';
-// import 'package:ventas_kiosko/styles/app_styles.dart';
 import 'package:ventas_kiosko/widgets/config/access_dialog_widget.dart';
 import 'package:ventas_kiosko/widgets/home/standby_background.dart';
 import 'package:ventas_kiosko/providers/utils/products_sync_provider.dart';
+import 'package:ventas_kiosko/routes/kiosk_route_observer.dart';
+import 'package:ventas_kiosko/utils/debug_session_log.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   static const routeName = '/home';
@@ -20,7 +21,8 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<ConsumerStatefulWidget> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStateMixin {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with TickerProviderStateMixin, RouteAware {
   bool _isSyncingProducts = false;
 
   // Per Javier 2026-08-24: el fondo puede ser video local o carrusel
@@ -43,12 +45,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     print('🏠 HomeScreen: Proceso de limpieza iniciado');
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      kioskRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPopNext() {
+    _checkAndClearCart();
+    ref.read(timerProvider.notifier).reset();
+    ref.read(inactivityTimerProvider.notifier).stopInactivity();
+  }
+
   Future<void> _checkAndClearCart() async {
     try {
       final currentItems = ref.read(cartTotalItemsProvider);
       if (currentItems > 0) {
         print('⚠️ HomeScreen: Detectados $currentItems items residuales en carrito');
-        // Limpieza de emergencia solo local
+        // #region agent log
+        agentDebugLog(
+          location: 'home_screen.dart:_checkAndClearCart',
+          message: 'Home found leftover cart items',
+          hypothesisId: 'C',
+          data: {'leftoverItems': currentItems},
+        );
+        // #endregion
         ref.read(cartNotifierProvider.notifier).clearCart();
       } else {
         print('✅ HomeScreen: Carrito ya está limpio');
@@ -56,6 +81,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     } catch (e) {
       print('🏠 HomeScreen: Error verificando carrito: $e');
     }
+  }
+
+  @override
+  void dispose() {
+    kioskRouteObserver.unsubscribe(this);
+    super.dispose();
   }
 
   @override
@@ -73,6 +104,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
             () => TapGestureRecognizer(),
             (TapGestureRecognizer instance) {
               instance.onTap = () async {
+                ref.read(cartNotifierProvider.notifier).clearCart();
                 // Verificar si es necesario refrescar productos/combos (<= 1h)
                 if (mounted) setState(() => _isSyncingProducts = true);
                 try {
