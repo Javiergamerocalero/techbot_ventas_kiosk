@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ventas_kiosko/providers/cart/cart_provider.dart';
 import 'package:ventas_kiosko/providers/config/app_dimensions_provider.dart';
 import 'package:ventas_kiosko/providers/printer/printer_provider.dart';
 import 'package:ventas_kiosko/screens/payment_success_screen.dart';
 import 'package:ventas_kiosko/services/izipay_service.dart';
+import 'package:ventas_kiosko/utils/debug_session_log.dart';
+import 'package:ventas_kiosko/services/izipay_voucher_formatter.dart';
 import 'package:ventas_kiosko/styles/app_styles.dart';
 
 /// Pantalla del flow de pago con PinPad Izipay (P400 vía PMP-API REST).
@@ -101,6 +104,19 @@ class _IzipayPaymentScreenState extends ConsumerState<IzipayPaymentScreen> {
       // saltar al PaymentSuccessScreen.
       await Future.delayed(const Duration(seconds: 1));
       if (!mounted) return;
+      // Venta normal (Izipay): el TimeUp sí limpiaba; este camino no.
+      // Igual que payment_standby: clear local, no reponer stock vendido.
+      final leftover = ref.read(cartTotalItemsProvider);
+      // #region agent log
+      agentDebugLog(
+        location: 'payment_izipay_screen.dart:success',
+        message: 'Clearing cart on successful Izipay sale before success screen',
+        hypothesisId: 'C',
+        data: {'leftoverItems': leftover},
+        runId: 'post-fix',
+      );
+      // #endregion
+      ref.read(cartNotifierProvider.notifier).clearCart();
       Navigator.of(context).pushReplacementNamed(
         PaymentSuccessScreen.routeName,
         arguments: {
@@ -253,52 +269,5 @@ class _IzipayPaymentScreenState extends ConsumerState<IzipayPaymentScreen> {
         ),
       ),
     );
-  }
-}
-
-/// Convierte el `print_data` que devuelve el PinPad Izipay (formato
-/// binario con prefijos de fuente) a texto plano imprimible línea a
-/// línea. El spec (sección 6) define:
-///
-///  - Cada línea empieza con un byte de formato (0x41 fuente normal,
-///    0x42 doble, 0x43/0x44 invertidos) y termina con 0x0D.
-///  - Líneas en blanco: bytes `32 1B 20 0D`.
-///  - Líneas con imagen: `0x32 0x1C 0xZZ 0x0D` — para impresión
-///    térmica simple las ignoramos.
-///
-/// Este parser saca todos los prefijos de formato y devuelve el
-/// texto plano — suficiente para una impresora térmica básica que no
-/// distingue fuentes.
-class IzipayVoucherFormatter {
-  static String toPlainText(String printData) {
-    final lines = <String>[];
-    final buffer = StringBuffer();
-    var expectingFormatPrefix = true;
-
-    for (final rune in printData.runes) {
-      if (rune == 0x0D || rune == 0x0A) {
-        lines.add(buffer.toString());
-        buffer.clear();
-        expectingFormatPrefix = true;
-        continue;
-      }
-      if (expectingFormatPrefix &&
-          (rune == 0x41 || rune == 0x42 || rune == 0x43 || rune == 0x44)) {
-        // Consumir el prefijo de formato sin agregarlo al texto.
-        expectingFormatPrefix = false;
-        continue;
-      }
-      // Ignorar bytes de control raros (ESC 0x1B, GS 0x1D, FS 0x1C).
-      if (rune == 0x1B || rune == 0x1D || rune == 0x1C) {
-        expectingFormatPrefix = false;
-        continue;
-      }
-      expectingFormatPrefix = false;
-      buffer.write(String.fromCharCode(rune));
-    }
-    if (buffer.isNotEmpty) lines.add(buffer.toString());
-
-    // Eliminar líneas duplicadas de padding y trimear derecha.
-    return lines.map((l) => l.trimRight()).join('\n');
   }
 }

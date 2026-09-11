@@ -17,6 +17,7 @@ import '../widgets/images/product_image_carousel.dart';
 import 'package:ventas_kiosko/widgets/products/stock_validation_modal.dart';
 import 'package:ventas_kiosko/providers/ui/stock_warning_provider.dart';
 import '../screens/cart_screen.dart';
+import 'package:ventas_kiosko/widgets/barcode/pre_payment_barcode_scope.dart';
 
 class ProductDetailScreen extends ConsumerWidget {
   static const routeName = '/product-detail';
@@ -310,7 +311,8 @@ class ProductDetailScreen extends ConsumerWidget {
               ),
               // Contenido scrolleable (CON InactivityDetector)
               Expanded(
-                child: InactivityDetector(
+                child: PrePaymentBarcodeScope(
+                  child: InactivityDetector(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.all(d.horizontalPadding),
                     child: Column(
@@ -368,7 +370,7 @@ class ProductDetailScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-              )),
+              ))),
             ],
           ),
           // Bottom bar con contador y botón

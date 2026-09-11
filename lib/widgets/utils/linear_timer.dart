@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ventas_kiosko/utils/debug_session_log.dart';
 import 'package:ventas_kiosko/utils/helpers.dart';
 
 class LinearTimer extends StatefulWidget {
@@ -16,7 +17,27 @@ class _LinearTimerState extends State<LinearTimer> {
   @override
   void initState() {
     super.initState();
-    _initialTimer = widget.timer > 0 ? widget.timer : 1; // Evitar división por cero
+    _initialTimer = widget.timer > 0 ? widget.timer : 1;
+  }
+
+  @override
+  void didUpdateWidget(LinearTimer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.timer > (_initialTimer ?? 0)) {
+      // #region agent log
+      agentDebugLog(
+        location: 'linear_timer.dart:didUpdateWidget',
+        message: 'LinearTimer reset initial because timer increased',
+        hypothesisId: 'B',
+        data: {
+          'oldInitial': _initialTimer,
+          'oldTimer': oldWidget.timer,
+          'newTimer': widget.timer,
+        },
+      );
+      // #endregion
+      _initialTimer = widget.timer;
+    }
   }
 
   @override

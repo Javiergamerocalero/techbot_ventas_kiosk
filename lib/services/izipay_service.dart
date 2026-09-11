@@ -41,7 +41,11 @@ class IzipayService {
   static const _defaultUser = 'izipay';
   static const _defaultPassword = 'izipay';
   static const _txCompra = '01';
+  static const _txDuplicado = '03';
+  static const _txReporteDetallado = '04';
+  static const _txReporteTotales = '05';
   static const _txAnulacion = '06';
+  static const _txCierre = '07';
   static const _moneySoles = '604';
 
   String? _cachedToken;
@@ -250,6 +254,53 @@ class IzipayService {
     if (rc != '00') {
       throw IzipayException(
         'Anulación rechazada: ${resp['message'] ?? rc}',
+      );
+    }
+    return IzipayPurchaseResult.fromResponse(resp);
+  }
+
+  /// Duplicado del último voucher (ecr_transaccion 03).
+  Future<IzipayPurchaseResult> duplicateLast() =>
+      _supervisorTx(_txDuplicado, timeout: const Duration(seconds: 60));
+
+  /// Reporte detallado del lote (ecr_transaccion 04).
+  Future<IzipayPurchaseResult> detailedReport() =>
+      _supervisorTx(_txReporteDetallado, timeout: const Duration(seconds: 90));
+
+  /// Reporte de totales del lote (ecr_transaccion 05).
+  Future<IzipayPurchaseResult> totalsReport() =>
+      _supervisorTx(_txReporteTotales, timeout: const Duration(seconds: 90));
+
+  /// Cierre de turno / lote (ecr_transaccion 07).
+  Future<IzipayPurchaseResult> closeShift() =>
+      _supervisorTx(_txCierre, timeout: const Duration(seconds: 90));
+
+  Future<IzipayPurchaseResult> _supervisorTx(
+    String tx, {
+    Map<String, dynamic> extra = const {},
+    Duration timeout = const Duration(seconds: 60),
+  }) async {
+    final cfg = await _readConfig();
+    if (cfg.ip.isEmpty) {
+      throw IzipayException('IP del pinpad Izipay no configurada');
+    }
+    final resp = await _postWithAuth(
+      cfg,
+      'procesarTransaccion',
+      {
+        'ecr_aplicacion': 'POS',
+        'ecr_transaccion': tx,
+        ...extra,
+      },
+      timeout: timeout,
+    );
+    final rc = resp['response_code']?.toString() ?? '';
+    final printData = resp['print_data']?.toString() ?? '';
+    if (rc != '00' && printData.trim().isEmpty) {
+      throw IzipayException(
+        resp['message']?.toString().trim().isNotEmpty == true
+            ? resp['message'].toString().trim()
+            : 'Operación rechazada (response_code=$rc)',
       );
     }
     return IzipayPurchaseResult.fromResponse(resp);

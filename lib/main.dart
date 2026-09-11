@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:ventas_kiosko/providers/config/theme_provider.dart';
 import 'package:ventas_kiosko/routes/custom_routes.dart';
+import 'package:ventas_kiosko/routes/kiosk_route_observer.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +33,7 @@ class MainApp extends ConsumerWidget {
           initialRoute: '/',
           routes: customRoutes,
           onGenerateRoute: generateRoute,
+          navigatorObservers: [kioskRouteObserver],
         );
       },
       orElse: () {
@@ -42,6 +44,7 @@ class MainApp extends ConsumerWidget {
           initialRoute: '/',
           routes: customRoutes,
           onGenerateRoute: generateRoute,
+          navigatorObservers: [kioskRouteObserver],
         );
       },
     );

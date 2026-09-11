@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ventas_kiosko/providers/config/app_dimensions_provider.dart';
+import 'package:ventas_kiosko/screens/config/izipay_operations_panel.dart';
 import 'package:ventas_kiosko/services/izipay_service.dart';
 import 'package:ventas_kiosko/styles/app_styles.dart';
 
@@ -243,6 +244,10 @@ class _ConfigIzipayScreenState extends ConsumerState<ConfigIzipayScreen> {
                       ? 'Consultando pinpad...'
                       : 'Probar conexión'),
                 ),
+                SizedBox(height: d.spacingXL),
+                const Divider(),
+                SizedBox(height: d.spacingL),
+                const IzipayOperationsPanel(),
               ],
             ),
           ),

@@ -18,6 +18,7 @@ import 'package:ventas_kiosko/widgets/products/category_products_grid.dart';
 import 'package:ventas_kiosko/widgets/utils/linear_timer.dart';
 import 'package:ventas_kiosko/widgets/utils/inactivity_detector.dart';
 import 'package:ventas_kiosko/providers/utils/button_loading_provider.dart';
+import 'package:ventas_kiosko/widgets/barcode/pre_payment_barcode_scope.dart';
 
 class ProductsScreen extends ConsumerWidget {
   static const routeName = '/products';
@@ -57,7 +58,8 @@ class ProductsScreen extends ConsumerWidget {
     
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      body: InactivityDetector(
+      body: PrePaymentBarcodeScope(
+        child: InactivityDetector(
         child: Stack(
               children: [
                 // Contenido principal con padding top para el header
@@ -313,6 +315,7 @@ class ProductsScreen extends ConsumerWidget {
               ],
             ),
         ),
+      ),
     );
   }
 

@@ -48,5 +48,8 @@ app.*.symbols
 *.ipr
 *.iws
 
+# Secrets locales de build (nunca commitear)
+.env
+
 # macOS
 .DS_Store

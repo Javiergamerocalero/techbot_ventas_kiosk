@@ -18,6 +18,7 @@ import 'package:ventas_kiosko/widgets/products/stock_validation_modal.dart';
 import 'package:ventas_kiosko/providers/ui/stock_warning_provider.dart';
 import 'package:ventas_kiosko/widgets/combos/combo_variation_selector_modal.dart';
 import '../screens/cart_screen.dart';
+import 'package:ventas_kiosko/widgets/barcode/pre_payment_barcode_scope.dart';
 
 class ComboDetailScreen extends ConsumerWidget {
   static const routeName = '/combo-detail';
@@ -120,7 +121,8 @@ class ComboDetailScreen extends ConsumerWidget {
               ),
               // Contenido scrolleable (CON InactivityDetector)
               Expanded(
-                child: InactivityDetector(
+                child: PrePaymentBarcodeScope(
+                  child: InactivityDetector(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.all(d.horizontalPadding),
                     child: Column(
@@ -243,6 +245,7 @@ class ComboDetailScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
+                ),
                 ),
               ),
             ],

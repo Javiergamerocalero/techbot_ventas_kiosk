@@ -7,9 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ventas_kiosko/providers/utils/timer_provider.dart';
 import 'package:ventas_kiosko/providers/cart/cart_provider.dart';
 import 'package:ventas_kiosko/screens/products_screen.dart';
-// import 'package:ventas_kiosko/styles/app_styles.dart';
 import 'package:ventas_kiosko/widgets/config/access_dialog_widget.dart';
 import 'package:ventas_kiosko/providers/utils/products_sync_provider.dart';
+import 'package:ventas_kiosko/routes/kiosk_route_observer.dart';
+import 'package:ventas_kiosko/utils/debug_session_log.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   static const routeName = '/home';
@@ -20,7 +21,8 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<ConsumerStatefulWidget> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStateMixin {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with TickerProviderStateMixin, RouteAware {
   late PageController _pageController;
   async.Timer? _timer;
   int _currentPage = 0;
@@ -47,6 +49,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     _startAutoSlide();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      kioskRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPopNext() {
+    _checkAndClearCart();
+    ref.read(timerProvider.notifier).reset();
+    ref.read(inactivityTimerProvider.notifier).stopInactivity();
+  }
+
   void _startAutoSlide() {
     _timer = async.Timer.periodic(const Duration(seconds: 4), (timer) {
       if (_currentPage < _carouselImages.length - 1) {
@@ -70,7 +88,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
       final currentItems = ref.read(cartTotalItemsProvider);
       if (currentItems > 0) {
         print('⚠️ HomeScreen: Detectados $currentItems items residuales en carrito');
-        // Limpieza de emergencia solo local
+        // #region agent log
+        agentDebugLog(
+          location: 'home_screen.dart:_checkAndClearCart',
+          message: 'Home found leftover cart items',
+          hypothesisId: 'C',
+          data: {'leftoverItems': currentItems},
+        );
+        // #endregion
         ref.read(cartNotifierProvider.notifier).clearCart();
       } else {
         print('✅ HomeScreen: Carrito ya está limpio');
@@ -82,6 +107,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
 
   @override
   void dispose() {
+    kioskRouteObserver.unsubscribe(this);
     _timer?.cancel();
     _pageController.dispose();
     super.dispose();
@@ -105,6 +131,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
             () => TapGestureRecognizer(),
             (TapGestureRecognizer instance) {
               instance.onTap = () async {
+                ref.read(cartNotifierProvider.notifier).clearCart();
                 // Verificar si es necesario refrescar productos/combos (<= 1h)
                 if (mounted) setState(() => _isSyncingProducts = true);
                 try {

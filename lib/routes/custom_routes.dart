@@ -18,6 +18,8 @@ import 'package:ventas_kiosko/screens/payment_standby_screen.dart';
 import 'package:ventas_kiosko/screens/config/config_niubiz_lane3000_screen.dart';
 import 'package:ventas_kiosko/screens/config/config_niubiz_im30_screen.dart';
 import 'package:ventas_kiosko/screens/config/config_izipay_screen.dart';
+import 'package:ventas_kiosko/screens/config/izipay_result_screen.dart';
+import 'package:ventas_kiosko/services/izipay_service.dart';
 import 'package:ventas_kiosko/screens/config/config_cashdro_screen.dart';
 import 'package:ventas_kiosko/models/products/product.dart';
 import 'package:ventas_kiosko/models/combos/combo.dart';
@@ -75,6 +77,22 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(builder: (_) => const ConfigNiubizIm30Screen());
     case ConfigIzipayScreen.routeName:
       return MaterialPageRoute(builder: (_) => const ConfigIzipayScreen());
+    case IzipayResultScreen.routeName:
+      final args = settings.arguments as Map<String, dynamic>?;
+      final result = args?['result'];
+      if (result is! IzipayPurchaseResult) {
+        return MaterialPageRoute(
+          builder: (_) => const Scaffold(
+            body: Center(child: Text('Sin resultado de Izipay')),
+          ),
+        );
+      }
+      return MaterialPageRoute(
+        builder: (_) => IzipayResultScreen(
+          title: args?['title'] as String? ?? 'Resultado Izipay',
+          result: result,
+        ),
+      );
     case ConfigCashdroScreen.routeName:
       return MaterialPageRoute(builder: (_) => const ConfigCashdroScreen());
     case CashDroPaymentScreen.routeName:
