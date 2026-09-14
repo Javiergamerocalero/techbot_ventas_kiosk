@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -40,13 +41,20 @@ class IzipayService {
   static const _defaultPort = '9090';
   static const _defaultUser = 'izipay';
   static const _defaultPassword = 'izipay';
-  static const _txCompra = '01';
-  static const _txDuplicado = '03';
-  static const _txReporteDetallado = '04';
-  static const _txReporteTotales = '05';
-  static const _txAnulacion = '06';
-  static const _txCierre = '07';
+  // Códigos de operación de la PMP-API. `01` y `06` están verificados
+  // contra el pinpad en producción; los de supervisor salen de la tabla
+  // documentada en el README (sección Izipay):
+  //   01 compra · 06 anulación · 09 reporte detallado ·
+  //   10 reporte de totales · 11 reimpresión · 12 cierre de lote.
+  // Son públicos para que las pruebas afirmen sobre ellos.
+  static const txCompra = '01';
+  static const txAnulacion = '06';
+  static const txReporteDetallado = '09';
+  static const txReporteTotales = '10';
+  static const txReimpresion = '11';
+  static const txCierre = '12';
   static const _moneySoles = '604';
+  static const _appId = 'POS';
 
   String? _cachedToken;
 
@@ -77,6 +85,47 @@ class IzipayService {
     // El spec dice "los 2 últimos dígitos son los decimales" — mínimo
     // 3 caracteres ("010" = 0.10, "120" = 1.20).
     return cents.toString().padLeft(3, '0');
+  }
+
+  /// Cuerpo de una compra (`01`).
+  @visibleForTesting
+  static Map<String, dynamic> purchaseBody(double amount) => {
+        'ecr_aplicacion': _appId,
+        'ecr_transaccion': txCompra,
+        'ecr_amount': amountToEcr(amount),
+        'ecr_currency_code': _moneySoles,
+      };
+
+  /// Cuerpo de una anulación (`06`): además del monto, la referencia de
+  /// la compra original.
+  @visibleForTesting
+  static Map<String, dynamic> voidBody({
+    required double amount,
+    required String reference,
+  }) => {
+        'ecr_aplicacion': _appId,
+        'ecr_transaccion': txAnulacion,
+        'ecr_amount': amountToEcr(amount),
+        'ecr_currency_code': _moneySoles,
+        'ecr_data_adicional': reference,
+      };
+
+  /// Cuerpo de las operaciones de supervisor (reimpresión, reportes y
+  /// cierre). Todas viajan con `ecr_currency_code` aunque no muevan
+  /// dinero: sin moneda el pinpad responde "MONEDA NO EXISTE"
+  /// (reportado por Javier el 2026-09-14). Reimpresión y reportes
+  /// llevan además `ecr_data_adicional`; el cierre no.
+  @visibleForTesting
+  static Map<String, dynamic> supervisorBody(String tx, {String? reference}) {
+    final body = <String, dynamic>{
+      'ecr_aplicacion': _appId,
+      'ecr_transaccion': tx,
+      'ecr_currency_code': _moneySoles,
+    };
+    if (tx != txCierre) {
+      body['ecr_data_adicional'] = reference ?? '';
+    }
+    return body;
   }
 
   Future<String> _login(IzipayConfigSnapshot cfg) async {
@@ -171,13 +220,7 @@ class IzipayService {
     if (cfg.ip.isEmpty) {
       throw IzipayException('IP del pinpad Izipay no configurada');
     }
-    final ecrAmount = amountToEcr(amount);
-    final baseBody = {
-      'ecr_aplicacion': 'POS',
-      'ecr_transaccion': _txCompra,
-      'ecr_amount': ecrAmount,
-      'ecr_currency_code': _moneySoles,
-    };
+    final baseBody = purchaseBody(amount);
 
     if (cfg.withBin) {
       // Paso 1: solicitar BIN.
@@ -241,43 +284,47 @@ class IzipayService {
     final resp = await _postWithAuth(
       cfg,
       'procesarTransaccion',
-      {
-        'ecr_aplicacion': 'POS',
-        'ecr_transaccion': _txAnulacion,
-        'ecr_amount': amountToEcr(amount),
-        'ecr_currency_code': _moneySoles,
-        'ecr_data_adicional': reference,
-      },
+      voidBody(amount: amount, reference: reference),
       timeout: const Duration(seconds: 60),
     );
     final rc = resp['response_code']?.toString() ?? '';
     if (rc != '00') {
+      final msg = resp['message']?.toString().trim() ?? '';
       throw IzipayException(
-        'Anulación rechazada: ${resp['message'] ?? rc}',
+        'Anulación rechazada: ${msg.isNotEmpty ? msg : 'sin mensaje'} (código $rc)',
       );
     }
     return IzipayPurchaseResult.fromResponse(resp);
   }
 
-  /// Duplicado del último voucher (ecr_transaccion 03).
-  Future<IzipayPurchaseResult> duplicateLast() =>
-      _supervisorTx(_txDuplicado, timeout: const Duration(seconds: 60));
+  /// Duplicado (reimpresión) del último voucher. Si [reference] viene
+  /// vacío el pinpad reimprime la última operación del lote.
+  Future<IzipayPurchaseResult> duplicateLast({String reference = ''}) =>
+      _supervisorTx(
+        txReimpresion,
+        reference: reference,
+        timeout: const Duration(seconds: 60),
+      );
 
-  /// Reporte detallado del lote (ecr_transaccion 04).
-  Future<IzipayPurchaseResult> detailedReport() =>
-      _supervisorTx(_txReporteDetallado, timeout: const Duration(seconds: 90));
+  /// Reporte detallado del lote.
+  Future<IzipayPurchaseResult> detailedReport() => _supervisorTx(
+        txReporteDetallado,
+        timeout: const Duration(seconds: 90),
+      );
 
-  /// Reporte de totales del lote (ecr_transaccion 05).
-  Future<IzipayPurchaseResult> totalsReport() =>
-      _supervisorTx(_txReporteTotales, timeout: const Duration(seconds: 90));
+  /// Reporte de totales del lote.
+  Future<IzipayPurchaseResult> totalsReport() => _supervisorTx(
+        txReporteTotales,
+        timeout: const Duration(seconds: 90),
+      );
 
-  /// Cierre de turno / lote (ecr_transaccion 07).
+  /// Cierre de turno / lote. No admite deshacer.
   Future<IzipayPurchaseResult> closeShift() =>
-      _supervisorTx(_txCierre, timeout: const Duration(seconds: 90));
+      _supervisorTx(txCierre, timeout: const Duration(seconds: 90));
 
   Future<IzipayPurchaseResult> _supervisorTx(
     String tx, {
-    Map<String, dynamic> extra = const {},
+    String? reference,
     Duration timeout = const Duration(seconds: 60),
   }) async {
     final cfg = await _readConfig();
@@ -287,20 +334,15 @@ class IzipayService {
     final resp = await _postWithAuth(
       cfg,
       'procesarTransaccion',
-      {
-        'ecr_aplicacion': 'POS',
-        'ecr_transaccion': tx,
-        ...extra,
-      },
+      supervisorBody(tx, reference: reference),
       timeout: timeout,
     );
     final rc = resp['response_code']?.toString() ?? '';
     final printData = resp['print_data']?.toString() ?? '';
     if (rc != '00' && printData.trim().isEmpty) {
+      final msg = resp['message']?.toString().trim() ?? '';
       throw IzipayException(
-        resp['message']?.toString().trim().isNotEmpty == true
-            ? resp['message'].toString().trim()
-            : 'Operación rechazada (response_code=$rc)',
+        msg.isNotEmpty ? '$msg (código $rc)' : 'Operación rechazada (código $rc)',
       );
     }
     return IzipayPurchaseResult.fromResponse(resp);

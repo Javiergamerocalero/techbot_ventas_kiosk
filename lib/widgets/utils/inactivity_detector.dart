@@ -2,7 +2,6 @@ import 'dart:async' as async;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ventas_kiosko/providers/utils/timer_provider.dart';
-import 'package:ventas_kiosko/utils/debug_session_log.dart';
 
 /// Widget reusable que detecta actividad del usuario (touch, scroll, etc.)
 /// y maneja el timer de inactividad automáticamente.
@@ -28,18 +27,6 @@ class _InactivityDetectorState extends ConsumerState<InactivityDetector> {
     super.initState();
     // Iniciar el timer inmediatamente al montar el widget
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // #region agent log
-      agentDebugLog(
-        location: 'inactivity_detector.dart:initState',
-        message: 'InactivityDetector mounted, forcing timer restart',
-        hypothesisId: 'A',
-        data: {
-          'inactivityRunning': ref.read(inactivityTimerProvider),
-          'timerValue': ref.read(timerProvider),
-          'mainDuration': ref.read(mainDurationProvider),
-        },
-      );
-      // #endregion
       _startInactivityTimer();
     });
   }

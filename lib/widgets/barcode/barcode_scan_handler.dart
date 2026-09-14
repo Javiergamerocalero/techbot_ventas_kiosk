@@ -9,7 +9,6 @@ import 'package:ventas_kiosko/screens/cart_screen.dart';
 import 'package:ventas_kiosko/screens/combo_detail_screen.dart';
 import 'package:ventas_kiosko/screens/product_detail_screen.dart';
 import 'package:ventas_kiosko/utils/product_catalog.dart';
-import 'package:ventas_kiosko/utils/debug_session_log.dart';
 
 /// Resuelve un SKU escaneado en pantallas pre-pago.
 ///
@@ -32,6 +31,8 @@ class BarcodeScanHandler {
     } catch (_) {
       products = const [];
     }
+
+    if (!context.mounted) return;
 
     final product = ProductCatalog.findProductBySku(products, cleaned);
     if (product != null) {
@@ -86,14 +87,6 @@ class BarcodeScanHandler {
       return;
     }
     _showSnack(context, 'Agregado: ${product.name}', Colors.green);
-    // #region agent log
-    agentDebugLog(
-      location: 'barcode_scan_handler.dart:_handleProduct',
-      message: 'Barcode added product and navigating to cart',
-      hypothesisId: 'E',
-      data: {'sku': product.sku, 'name': product.name, 'published': ProductCatalog.isPublishedSku(product.sku)},
-    );
-    // #endregion
     final current = ModalRoute.of(context)?.settings.name;
     if (current != CartScreen.routeName) {
       Navigator.of(context).pushNamed(CartScreen.routeName);
