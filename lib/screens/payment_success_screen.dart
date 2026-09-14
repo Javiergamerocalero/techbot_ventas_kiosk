@@ -7,7 +7,6 @@ import 'package:ventas_kiosko/providers/cart/cart_provider.dart';
 import 'package:ventas_kiosko/widgets/utils/linear_timer.dart';
 import '../styles/app_styles.dart';
 import '../providers/config/app_dimensions_provider.dart';
-import 'package:ventas_kiosko/utils/debug_session_log.dart';
 
 class PaymentSuccessScreen extends ConsumerWidget {
   static const routeName = '/payment-success';
@@ -143,16 +142,6 @@ class PaymentSuccessScreen extends ConsumerWidget {
   }
 
   void _goHome(BuildContext context, WidgetRef ref) {
-    final leftover = ref.read(cartTotalItemsProvider);
-    // #region agent log
-    agentDebugLog(
-      location: 'payment_success_screen.dart:_goHome',
-      message: 'Leaving success, clearing cart before popUntil home',
-      hypothesisId: 'C',
-      data: {'leftoverItems': leftover},
-      runId: 'post-fix',
-    );
-    // #endregion
     ref.read(cartNotifierProvider.notifier).clearCart();
     ref.read(timerProvider.notifier).reset();
     ref.read(inactivityTimerProvider.notifier).stopInactivity();

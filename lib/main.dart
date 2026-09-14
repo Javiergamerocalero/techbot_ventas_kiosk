@@ -6,12 +6,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ventas_kiosko/providers/config/theme_provider.dart';
 import 'package:ventas_kiosko/routes/custom_routes.dart';
 import 'package:ventas_kiosko/routes/kiosk_route_observer.dart';
+import 'package:ventas_kiosko/utils/product_catalog.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   await dotenv.load(fileName: ".env");
+  // El filtro de catálogo se consulta en código síncrono: hay que
+  // tener la preferencia leída antes del primer build.
+  await ProductCatalog.loadPreference();
   runApp(const ProviderScope(child: MainApp()));
 }
 

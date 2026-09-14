@@ -10,7 +10,6 @@ import 'package:ventas_kiosko/widgets/config/access_dialog_widget.dart';
 import 'package:ventas_kiosko/widgets/home/standby_background.dart';
 import 'package:ventas_kiosko/providers/utils/products_sync_provider.dart';
 import 'package:ventas_kiosko/routes/kiosk_route_observer.dart';
-import 'package:ventas_kiosko/utils/debug_session_log.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   static const routeName = '/home';
@@ -66,14 +65,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       final currentItems = ref.read(cartTotalItemsProvider);
       if (currentItems > 0) {
         print('⚠️ HomeScreen: Detectados $currentItems items residuales en carrito');
-        // #region agent log
-        agentDebugLog(
-          location: 'home_screen.dart:_checkAndClearCart',
-          message: 'Home found leftover cart items',
-          hypothesisId: 'C',
-          data: {'leftoverItems': currentItems},
-        );
-        // #endregion
         ref.read(cartNotifierProvider.notifier).clearCart();
       } else {
         print('✅ HomeScreen: Carrito ya está limpio');

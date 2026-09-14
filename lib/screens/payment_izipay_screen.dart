@@ -6,7 +6,6 @@ import 'package:ventas_kiosko/providers/config/app_dimensions_provider.dart';
 import 'package:ventas_kiosko/providers/printer/printer_provider.dart';
 import 'package:ventas_kiosko/screens/payment_success_screen.dart';
 import 'package:ventas_kiosko/services/izipay_service.dart';
-import 'package:ventas_kiosko/utils/debug_session_log.dart';
 import 'package:ventas_kiosko/services/izipay_voucher_formatter.dart';
 import 'package:ventas_kiosko/styles/app_styles.dart';
 
@@ -115,16 +114,6 @@ class _IzipayPaymentScreenState extends ConsumerState<IzipayPaymentScreen> {
       if (!mounted) return;
       // Venta normal (Izipay): el TimeUp sí limpiaba; este camino no.
       // Igual que payment_standby: clear local, no reponer stock vendido.
-      final leftover = ref.read(cartTotalItemsProvider);
-      // #region agent log
-      agentDebugLog(
-        location: 'payment_izipay_screen.dart:success',
-        message: 'Clearing cart on successful Izipay sale before success screen',
-        hypothesisId: 'C',
-        data: {'leftoverItems': leftover},
-        runId: 'post-fix',
-      );
-      // #endregion
       ref.read(cartNotifierProvider.notifier).clearCart();
       Navigator.of(context).pushReplacementNamed(
         PaymentSuccessScreen.routeName,

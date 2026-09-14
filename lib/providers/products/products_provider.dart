@@ -6,7 +6,6 @@ import 'package:ventas_kiosko/services/stock_service.dart';
 import 'package:ventas_kiosko/models/products/stock_response.dart';
 import 'package:ventas_kiosko/providers/products/master_data_provider.dart';
 import 'package:ventas_kiosko/providers/images/image_cache_provider.dart';
-import 'package:ventas_kiosko/utils/debug_session_log.dart';
 import 'package:ventas_kiosko/utils/product_catalog.dart';
 
 part 'products_provider.g.dart';
@@ -357,20 +356,6 @@ Future<List<Product>> featuredProductsStable(Ref ref) async {
       .where((product) =>
           product.isFavorite && ProductCatalog.isPublishedSku(product.sku))
       .toList();
-  // #region agent log
-  agentDebugLog(
-    location: 'products_provider.dart:featuredProductsStable',
-    message: 'Featured catalog after PUB filter',
-    hypothesisId: 'D',
-    data: {
-      'allCount': products.length,
-      'featuredPublished': featuredProducts.length,
-      'unpublishedFeatured': products
-          .where((p) => p.isFavorite && !ProductCatalog.isPublishedSku(p.sku))
-          .length,
-    },
-  );
-  // #endregion
   
   // Precargar imágenes en background (sin bloquear la UI)
   _preloadProductImages(ref, featuredProducts);

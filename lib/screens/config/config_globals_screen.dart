@@ -23,6 +23,7 @@ import 'package:ventas_kiosko/providers/images/image_preloader_provider.dart';
 import 'package:ventas_kiosko/providers/products/products_provider.dart';
 import 'package:ventas_kiosko/widgets/config/update_options_dialog.dart';
 import 'package:ventas_kiosko/providers/config/invoice_settings_provider.dart';
+import 'package:ventas_kiosko/utils/product_catalog.dart';
 
 class ConfigGlobalsScreen extends ConsumerStatefulWidget {
   const ConfigGlobalsScreen({super.key});
@@ -118,6 +119,7 @@ class _ConfigGlobalsScreenState extends ConsumerState<ConfigGlobalsScreen> {
       ),
     );
   }
+  bool _showAllSkus = ProductCatalog.showAllSkus;
 
   Future<void> _refreshThemeOnly() async {
     try {
@@ -361,6 +363,11 @@ class _ConfigGlobalsScreenState extends ConsumerState<ConfigGlobalsScreen> {
             _buildSectionTitle('Video de Standby:', d, colorScheme),
             SizedBox(height: d.spacingS),
             _buildStandbyVideoCard(d: d, colorScheme: colorScheme),
+            /////////////// Catálogo ///////////////
+            _buildDivider(d),
+            _buildSectionTitle('Catálogo:', d, colorScheme),
+            SizedBox(height: d.spacingS),
+            _buildCatalogFilterCard(d: d, colorScheme: colorScheme),
 
             /////////////// Aplicación ///////////////
             _buildDivider(d),
@@ -538,6 +545,47 @@ class _ConfigGlobalsScreenState extends ConsumerState<ConfigGlobalsScreen> {
         onChanged: (value) {
           ref.read(invoiceSettingsProvider.notifier).setSuspended(value);
         },
+      ),
+    );
+  }
+
+  /// Switch del filtro de catálogo. Por defecto el kiosco solo lista
+  /// los SKUs con prefijo `PUB`; apagarlo muestra todo el catálogo del
+  /// tenant, que es lo que hace falta mientras se marcan los productos
+  /// en Qapp. Los productos sin prefijo siempre se pueden agregar
+  /// escaneando su código de barras.
+  Widget _buildCatalogFilterCard({
+    required AppDimensions d,
+    required ColorScheme colorScheme,
+  }) {
+    return Card(
+      color: colorScheme.surfaceContainerLowest,
+      elevation: d.blurRadius * 0.5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(d.borderRadiusM)),
+      child: SwitchListTile(
+        value: _showAllSkus,
+        contentPadding: d.paddingS,
+        title: Text(
+          'Mostrar todos los productos',
+          style: AppTextStyles.body(d).copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(
+          _showAllSkus
+              ? 'Se lista todo el catálogo del tenant, con prefijo PUB o sin él.'
+              : 'Solo se listan los productos con prefijo PUB en el SKU. El resto se agrega escaneando.',
+          style: AppTextStyles.caption(d).copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
+        ),
+        onChanged: _isRefreshing
+            ? null
+            : (value) async {
+                await ProductCatalog.setShowAllSkus(value);
+                if (!mounted) return;
+                setState(() => _showAllSkus = value);
+                // El filtro se aplica dentro de los providers, así que
+                // hay que recalcularlos para que el menú cambie.
+                ref.invalidate(masterDataProvider);
+                ref.invalidate(allProductsProvider);
+              },
       ),
     );
   }
