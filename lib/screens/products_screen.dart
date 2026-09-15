@@ -35,6 +35,10 @@ class ProductsScreen extends ConsumerWidget {
     final totalItems = ref.watch(cartTotalItemsProvider);
     final selectedCategory = ref.watch(selectedCategoryFilterProvider);
     final selectedSubcategory = ref.watch(selectedSubcategoryFilterProvider);
+    final showCategoryFilters = categoriesAsync.maybeWhen(
+      data: (categories) => categories.length > 1,
+      orElse: () => false,
+    );
     final filteredProductsAsync = ref.watch(filteredProductsPaginatedProvider);
     final hasMoreProductsAsync = ref.watch(hasMoreFilteredProductsProvider);
     final loadingMap = ref.watch(buttonLoadingProvider);
@@ -106,12 +110,16 @@ class ProductsScreen extends ConsumerWidget {
                             loading: () => const SizedBox.shrink(),
                             error: (error, stack) => Center(child: Text('Error: $error')),
                           ),
-                          // Espaciado antes de filtros
-                          SizedBox(height: d.spacingL),
-                          const CategoryFilterChips(),
-                          const SubcategoryFilterChips(),
-                          // Espaciado después de filtros
-                          SizedBox(height: d.spacingL),
+                          // El filtro de categorías solo aparece cuando hay
+                          // más de una: con una sola no filtra nada y deja un
+                          // hueco entre el encabezado y los productos
+                          // (Javier, 2026-09-14).
+                          if (showCategoryFilters) ...[
+                            SizedBox(height: d.spacingL),
+                            const CategoryFilterChips(),
+                            const SubcategoryFilterChips(),
+                            SizedBox(height: d.spacingL),
+                          ],
                           // Mostrar productos filtrados si hay filtros activos
                           if (selectedCategory != null || selectedSubcategory != null)
                         filteredProductsAsync.when(

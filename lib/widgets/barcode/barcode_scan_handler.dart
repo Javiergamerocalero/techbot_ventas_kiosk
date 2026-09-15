@@ -74,9 +74,15 @@ class BarcodeScanHandler {
       return;
     }
 
+    // El servidor reserva por cantidad TOTAL del carrito, no por incremento.
+    // Mandar siempre 1 dejaba la reserva clavada en 1 aunque el kiosco fuera
+    // sumando unidades (reportado por Javier el 2026-09-14). Es el mismo
+    // camino que usan los botones "+" de las tarjetas de producto.
+    final currentQuantity =
+        ref.read(productInCartProvider(product.id.toString()))?.quantity ?? 0;
     final response = await ref
         .read(cartNotifierProvider.notifier)
-        .validateAndAddProduct(product, quantity: 1);
+        .validateStockOnly(product, currentQuantity + 1);
     if (!context.mounted) return;
     if (!response.isAvailable) {
       _showSnack(
@@ -86,6 +92,7 @@ class BarcodeScanHandler {
       );
       return;
     }
+    ref.read(cartNotifierProvider.notifier).addProduct(product, quantity: 1);
     _showSnack(context, 'Agregado: ${product.name}', Colors.green);
     final current = ModalRoute.of(context)?.settings.name;
     if (current != CartScreen.routeName) {

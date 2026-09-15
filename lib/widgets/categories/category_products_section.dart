@@ -28,7 +28,6 @@ class CategoryProductsSection extends ConsumerWidget {
     
     // Si tiene productos directos, mostrar la vista normal
     final productsByCategoryAsync = ref.watch(productsByCategoryWithStockProvider(category.id));
-    final visibleCount = ref.watch(categoryProductsPaginationProvider.select((state) => state[category.id.toString()] ?? 4));
     
     return productsByCategoryAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -40,9 +39,6 @@ class CategoryProductsSection extends ConsumerWidget {
         if (products.isEmpty) {
           return const SizedBox.shrink();
         }
-
-        final displayProducts = products.take(visibleCount).toList();
-        final hasMoreProducts = products.length > visibleCount;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -79,49 +75,12 @@ class CategoryProductsSection extends ConsumerWidget {
             ),
             SizedBox(height: d.spacingL), // Más espacio entre título y productos
             // Grid de productos (2x2)
+            // La lista va completa: con el filtro PUB el catálogo es corto y
+            // Javier pidió que no se oculte nada (2026-09-14).
             CategoryProductsGrid(
-              products: displayProducts,
-              maxItems: displayProducts.length,
+              products: products,
+              maxItems: products.length,
             ),
-            // Botón "Ver más" si hay más productos
-            if (hasMoreProducts)
-              Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: d.horizontalPadding,
-                  vertical: d.spacingM,
-                ),
-                child: GestureDetector(
-                  onTap: () => ref.read(categoryProductsPaginationProvider.notifier).showMore(category.id.toString()),
-                  child: Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.symmetric(vertical: d.spacingM),
-                    decoration: BoxDecoration(
-                      color: colorScheme.surface,
-                      borderRadius: BorderRadius.circular(d.borderRadiusM),
-                      border: Border.all(
-                        color: colorScheme.primary.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Ver más productos (${products.length - visibleCount})',
-                          style: AppTextStyles.button(d).copyWith(
-                            color: colorScheme.primary,
-                          ),
-                        ),
-                        SizedBox(width: d.spacingS),
-                        Icon(
-                          Icons.keyboard_arrow_down,
-                          color: colorScheme.primary,
-                          size: d.iconSizeM,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
             SizedBox(height: d.spacingXL),
           ],
         );
