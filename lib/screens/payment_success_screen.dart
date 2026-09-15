@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ventas_kiosko/helpers/employee_purchase_hook.dart';
 import 'package:ventas_kiosko/providers/cart/cart_provider.dart';
 import 'package:ventas_kiosko/providers/utils/timer_provider.dart';
-import 'package:ventas_kiosko/providers/cart/cart_provider.dart';
 import 'package:ventas_kiosko/widgets/utils/linear_timer.dart';
 import '../styles/app_styles.dart';
 import '../providers/config/app_dimensions_provider.dart';
