@@ -35,6 +35,10 @@ class ProductsScreen extends ConsumerWidget {
     final totalItems = ref.watch(cartTotalItemsProvider);
     final selectedCategory = ref.watch(selectedCategoryFilterProvider);
     final selectedSubcategory = ref.watch(selectedSubcategoryFilterProvider);
+    final showCategoryFilters = categoriesAsync.maybeWhen(
+      data: (categories) => categories.length > 1,
+      orElse: () => false,
+    );
     final filteredProductsAsync = ref.watch(filteredProductsPaginatedProvider);
     final loadingMap = ref.watch(buttonLoadingProvider);
     final isActionLoading = loadingMap.entries.any((e) {
@@ -111,12 +115,17 @@ class ProductsScreen extends ConsumerWidget {
                             loading: () => const SizedBox.shrink(),
                             error: (error, stack) => Center(child: Text('Error: $error')),
                           ),
-                          // Espaciado antes/después de filtros
-                          // achicado para subir el grid.
-                          SizedBox(height: d.spacingS),
-                          const CategoryFilterChips(),
-                          const SubcategoryFilterChips(),
-                          SizedBox(height: d.spacingS),
+                          // El filtro de categorías solo aparece cuando hay
+                          // más de una: con una sola no filtra nada y deja un
+                          // hueco entre el encabezado y los productos
+                          // (Javier, 2026-09-14). Los espaciados van cortos
+                          // para que el grid quede arriba (Javier, 2026-08-24).
+                          if (showCategoryFilters) ...[
+                            SizedBox(height: d.spacingS),
+                            const CategoryFilterChips(),
+                            const SubcategoryFilterChips(),
+                            SizedBox(height: d.spacingS),
+                          ],
                           // Mostrar productos filtrados si hay filtros activos
                           if (selectedCategory != null || selectedSubcategory != null)
                         filteredProductsAsync.when(

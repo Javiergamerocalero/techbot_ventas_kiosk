@@ -20,8 +20,11 @@ class CategoryFilterChips extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         categoriesAsync.when(
+          // La altura la marca el chip, no el doble de spacingXL: con eso la
+          // fila medía casi un cuarto del ancho de pantalla y dejaba al chip
+          // flotando en un hueco.
           data: (categories) => SizedBox(
-            height: d.spacingXL * 2,
+            height: d.spacingXL * 1.1,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: EdgeInsets.symmetric(horizontal: d.horizontalPadding),
@@ -29,49 +32,66 @@ class CategoryFilterChips extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final category = categories[index];
                 final isSelected = selectedCategory == category.id;
-                
+
                 return Padding(
                   padding: EdgeInsets.only(right: d.spacingM),
-                  child: FilterChip(
-                    label: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          category.icon?.toFlutterIconData() ?? Icons.category,
-                          size: d.iconSizeS,
-                          color: isSelected ? colorScheme.onPrimary : colorScheme.primary,
-                        ),
-                        SizedBox(width: d.spacingS),
-                        Text(
-                          category.name,
-                          style: AppTextStyles.caption(d).copyWith(
-                            color: isSelected ? colorScheme.onPrimary : colorScheme.primary,
-                            fontWeight: FontWeight.w600,
+                  child: Center(
+                    child: FilterChip(
+                      label: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            category.icon?.toFlutterIconData() ??
+                                Icons.category,
+                            size: d.iconSizeS,
+                            color: isSelected
+                                ? colorScheme.onPrimary
+                                : colorScheme.primary,
                           ),
-                        ),
-                      ],
-                    ),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      if (selected) {
-                        ref.read(selectedCategoryFilterProvider.notifier).selectCategory(category.id);
-                        ref.read(selectedSubcategoryFilterProvider.notifier).clearSubcategory();
-                        // Reiniciar paginación al cambiar filtro
-                        ref.read(globalProductsPaginationProvider.notifier).resetAll();
-                      } else {
-                        ref.read(selectedCategoryFilterProvider.notifier).clearCategory();
-                        ref.read(selectedSubcategoryFilterProvider.notifier).clearSubcategory();
-                        // Reiniciar paginación al limpiar filtros
-                      }
-                    },
-                    selectedColor: colorScheme.primary,
-                    backgroundColor: colorScheme.surface,
-                    side: BorderSide(
-                      color: colorScheme.primary.withValues(alpha: 0.3),
-                    ),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: d.spacingM,
-                      vertical: d.spacingS,
+                          SizedBox(width: d.spacingS),
+                          Text(
+                            category.name,
+                            style: AppTextStyles.caption(d).copyWith(
+                              color: isSelected
+                                  ? colorScheme.onPrimary
+                                  : colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        if (selected) {
+                          ref
+                              .read(selectedCategoryFilterProvider.notifier)
+                              .selectCategory(category.id);
+                          ref
+                              .read(selectedSubcategoryFilterProvider.notifier)
+                              .clearSubcategory();
+                          // Reiniciar paginación al cambiar filtro
+                          ref
+                              .read(globalProductsPaginationProvider.notifier)
+                              .resetAll();
+                        } else {
+                          ref
+                              .read(selectedCategoryFilterProvider.notifier)
+                              .clearCategory();
+                          ref
+                              .read(selectedSubcategoryFilterProvider.notifier)
+                              .clearSubcategory();
+                          // Reiniciar paginación al limpiar filtros
+                        }
+                      },
+                      selectedColor: colorScheme.primary,
+                      backgroundColor: colorScheme.surface,
+                      side: BorderSide(
+                        color: colorScheme.primary.withValues(alpha: 0.3),
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: d.spacingM,
+                        vertical: d.spacingS,
+                      ),
                     ),
                   ),
                 );
@@ -79,11 +99,11 @@ class CategoryFilterChips extends ConsumerWidget {
             ),
           ),
           loading: () => SizedBox(
-            height: d.spacingXL * 2,
+            height: d.spacingXL * 1.1,
             child: const Center(child: CircularProgressIndicator()),
           ),
           error: (err, stack) => SizedBox(
-            height: d.spacingXL * 2,
+            height: d.spacingXL * 1.1,
             child: Center(child: Text('Error: $err')),
           ),
         ),
@@ -91,5 +111,4 @@ class CategoryFilterChips extends ConsumerWidget {
       ],
     );
   }
-
 }
