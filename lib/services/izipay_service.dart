@@ -41,18 +41,18 @@ class IzipayService {
   static const _defaultPort = '9090';
   static const _defaultUser = 'izipay';
   static const _defaultPassword = 'izipay';
-  // Códigos de operación de la PMP-API. `01` y `06` están verificados
-  // contra el pinpad en producción; los de supervisor salen de la tabla
-  // documentada en el README (sección Izipay):
-  //   01 compra · 06 anulación · 09 reporte detallado ·
-  //   10 reporte de totales · 11 reimpresión · 12 cierre de lote.
-  // Son públicos para que las pruebas afirmen sobre ellos.
+  // Códigos de operación segun la tabla de `ecr_transaccion` de las
+  // Especificaciones Tecnicas PMP-API REST v2.3, pagina 7. Son publicos
+  // para que las pruebas afirmen sobre ellos.
   static const txCompra = '01';
   static const txAnulacion = '06';
   static const txReporteDetallado = '09';
   static const txReporteTotales = '10';
   static const txReimpresion = '11';
   static const txCierre = '12';
+  static const txReporteDetalladoCierre = '19';
+  static const txReporteTotalesCierre = '20';
+  static const txQrDirecto = '67';
   static const _moneySoles = '604';
   static const _appId = 'POS';
 
@@ -97,14 +97,27 @@ class IzipayService {
         if (bearer != null) 'Authorization': 'Bearer $bearer',
       };
 
-  /// Cuerpo de una compra (`01`).
+  /// Cuerpo de una compra. Con [IzipayMode.tarjeta] es la transaccion
+  /// `01` del manual (4.3). Con [IzipayMode.qr] es la `67`, "Compra Pago
+  /// con QR Directo" (8.2), que ademas lleva `ecr_data_adicional` en "0"
+  /// para indicarle al pinpad que NO pida BIN: el manual dice que esta
+  /// transaccion no debe ir precedida de una consulta de BIN.
   @visibleForTesting
-  static Map<String, dynamic> purchaseBody(double amount) => {
-        'ecr_aplicacion': _appId,
-        'ecr_transaccion': txCompra,
-        'ecr_amount': amountToEcr(amount),
-        'ecr_currency_code': _moneySoles,
-      };
+  static Map<String, dynamic> purchaseBody(
+    double amount, {
+    IzipayMode mode = IzipayMode.tarjeta,
+  }) {
+    final body = <String, dynamic>{
+      'ecr_aplicacion': _appId,
+      'ecr_transaccion': mode == IzipayMode.qr ? txQrDirecto : txCompra,
+      'ecr_amount': amountToEcr(amount),
+      'ecr_currency_code': _moneySoles,
+    };
+    if (mode == IzipayMode.qr) {
+      body['ecr_data_adicional'] = '0';
+    }
+    return body;
+  }
 
   /// Cuerpo de una anulación (`06`): además del monto, la referencia de
   /// la compra original.
@@ -120,20 +133,25 @@ class IzipayService {
         'ecr_data_adicional': reference,
       };
 
-  /// Cuerpo de las operaciones de supervisor (reimpresión, reportes y
-  /// cierre). Todas viajan con `ecr_currency_code` aunque no muevan
-  /// dinero: sin moneda el pinpad responde "MONEDA NO EXISTE"
-  /// (reportado por Javier el 2026-09-14). Reimpresión y reportes
-  /// llevan además `ecr_data_adicional`; el cierre no.
+  /// Cuerpo de las operaciones de supervisor.
+  ///
+  /// El manual es taxativo y minimalista aca: el reporte detallado (4.6),
+  /// el de totales (4.7) y el cierre (4.8) viajan **solo** con aplicacion
+  /// y transaccion. No llevan moneda ni monto. Mandarles campos de mas es
+  /// lo que hacia que el pinpad devolviera el codigo 89.
+  ///
+  /// La reimpresion (4.5) es la unica que lleva `ecr_data_adicional`, con
+  /// el numero de referencia del voucher a reimprimir; si no se indica
+  /// referencia el campo se omite y el pinpad reimprime el ultimo.
   @visibleForTesting
   static Map<String, dynamic> supervisorBody(String tx, {String? reference}) {
     final body = <String, dynamic>{
       'ecr_aplicacion': _appId,
       'ecr_transaccion': tx,
-      'ecr_currency_code': _moneySoles,
     };
-    if (tx != txCierre) {
-      body['ecr_data_adicional'] = reference ?? '';
+    final ref = reference?.trim() ?? '';
+    if (tx == txReimpresion && ref.isNotEmpty) {
+      body['ecr_data_adicional'] = ref;
     }
     return body;
   }
@@ -239,15 +257,18 @@ class IzipayService {
   /// (incluye `print_data`, `card`, `approval_code`, etc.).
   Future<IzipayPurchaseResult> purchase({
     required double amount,
+    IzipayMode mode = IzipayMode.tarjeta,
     Future<bool> Function(String bin)? onBinReceived,
   }) async {
     final cfg = await _readConfig();
     if (cfg.ip.isEmpty) {
       throw IzipayException('IP del pinpad Izipay no configurada');
     }
-    final baseBody = purchaseBody(amount);
+    final baseBody = purchaseBody(amount, mode: mode);
 
-    if (cfg.withBin) {
+    // El QR directo no admite consulta de BIN previa (manual, 8.2), asi
+    // que el paso del BIN se salta aunque la config lo tenga activado.
+    if (cfg.withBin && mode == IzipayMode.tarjeta) {
       // Paso 1: solicitar BIN.
       final binResp = await _postWithAuth(cfg, 'procesarTransaccion', {
         ...baseBody,
@@ -344,8 +365,19 @@ class IzipayService {
       );
 
   /// Cierre de turno / lote. No admite deshacer.
-  Future<IzipayPurchaseResult> closeShift() =>
-      _supervisorTx(txCierre, timeout: const Duration(seconds: 90));
+  ///
+  /// El manual (4.8) no deja cerrar a secas: la caja debe mandar primero
+  /// el reporte detallado de cierre (`19`), despues el de totales (`20`)
+  /// y solo entonces el cierre (`12`), cortando la secuencia si alguno no
+  /// aprueba. Devuelve los tres vouchers concatenados para que el
+  /// operador los tenga completos.
+  Future<IzipayPurchaseResult> closeShift() async {
+    const paso = Duration(seconds: 90);
+    final detalle = await _supervisorTx(txReporteDetalladoCierre, timeout: paso);
+    final totales = await _supervisorTx(txReporteTotalesCierre, timeout: paso);
+    final cierre = await _supervisorTx(txCierre, timeout: paso);
+    return cierre.withPrependedVouchers([detalle, totales]);
+  }
 
   Future<IzipayPurchaseResult> _supervisorTx(
     String tx, {
@@ -372,6 +404,16 @@ class IzipayService {
     }
     return IzipayPurchaseResult.fromResponse(resp);
   }
+}
+
+/// Como se cobra en el pinpad: leyendo la tarjeta o mostrando un QR.
+/// Son dos transacciones distintas de la PMP-API (`01` y `67`), no dos
+/// caminos de la misma.
+enum IzipayMode {
+  tarjeta,
+  qr;
+
+  String get displayName => this == IzipayMode.qr ? 'QR' : 'Tarjeta';
 }
 
 /// Snapshot inmutable de la config leída de SharedPreferences.
@@ -418,6 +460,31 @@ class IzipayPurchaseResult {
   final String? batchNumber;
   final String? terminalNumber;
   final String? cardId;
+
+  /// Devuelve el mismo resultado con los vouchers de [previos] delante
+  /// del propio. Lo usa el cierre de lote, que son tres transacciones
+  /// pero un solo comprobante para el operador.
+  IzipayPurchaseResult withPrependedVouchers(
+    List<IzipayPurchaseResult> previos,
+  ) {
+    final partes = [
+      ...previos.map((r) => r.printData),
+      printData,
+    ].where((p) => p.trim().isNotEmpty);
+    return IzipayPurchaseResult(
+      printData: partes.join('\r'),
+      approvalCode: approvalCode,
+      card: card,
+      amount: amount,
+      currencyCode: currencyCode,
+      message: message,
+      raw: raw,
+      traceNumber: traceNumber,
+      batchNumber: batchNumber,
+      terminalNumber: terminalNumber,
+      cardId: cardId,
+    );
+  }
 
   factory IzipayPurchaseResult.fromResponse(Map<String, dynamic> body) {
     String s(dynamic v) => v?.toString() ?? '';

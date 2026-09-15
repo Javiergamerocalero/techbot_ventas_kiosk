@@ -1,43 +1,68 @@
-/// Convierte el `print_data` que devuelve el PinPad Izipay (formato
-/// binario con prefijos de fuente) a texto plano imprimible línea a
-/// línea. El spec (sección 6) define:
+/// Convierte el `print_data` que devuelve el PinPad Izipay a texto plano
+/// imprimible, línea a línea.
 ///
-///  - Cada línea empieza con un byte de formato (0x41 fuente normal,
-///    0x42 doble, 0x43/0x44 invertidos) y termina con 0x0D.
-///  - Líneas en blanco: bytes `32 1B 20 0D`.
-///  - Líneas con imagen: `0x32 0x1C 0xZZ 0x0D` — para impresión
-///    térmica simple las ignoramos.
+/// El formato está en la sección 6 del manual PMP-API REST v2.3. Cada
+/// línea termina en `0x0D` y empieza con un byte que dice cómo
+/// imprimirla:
 ///
-/// Este parser saca todos los prefijos de formato y devuelve el
-/// texto plano — suficiente para una impresora térmica básica que no
-/// distingue fuentes.
+///  - `0x41` fuente normal, `0x42` doble, `0x43`/`0x44` las mismas en
+///    inverso. El manual dice tratar 43 como 41 y 44 como 42, así que
+///    para una térmica simple los cuatro son lo mismo: texto.
+///  - Línea en blanco: `32 1B 20 0D`.
+///  - Línea de imagen: `32 1C ZZ 0D`, donde `ZZ` indica qué logo va
+///    (hoy solo el check de Visa DCC). Una térmica simple no lo imprime.
+///
+/// Las dos últimas empiezan con `0x32`, que es el carácter `2`. Si no se
+/// tratan aparte, cada línea en blanco del voucher sale impresa como un
+/// `2` suelto y la de imagen como `2B`.
 class IzipayVoucherFormatter {
+  static const _fuenteNormal = 0x41;
+  static const _fuenteDoble = 0x42;
+  static const _fuenteNormalInversa = 0x43;
+  static const _fuenteDobleInversa = 0x44;
+  static const _marcaControl = 0x32;
+  static const _lineaEnBlanco = 0x1B;
+  static const _lineaDeImagen = 0x1C;
+
   static String toPlainText(String printData) {
-    final lines = <String>[];
-    final buffer = StringBuffer();
-    var expectingFormatPrefix = true;
-
-    for (final rune in printData.runes) {
-      if (rune == 0x0D || rune == 0x0A) {
-        lines.add(buffer.toString());
-        buffer.clear();
-        expectingFormatPrefix = true;
-        continue;
-      }
-      if (expectingFormatPrefix &&
-          (rune == 0x41 || rune == 0x42 || rune == 0x43 || rune == 0x44)) {
-        expectingFormatPrefix = false;
-        continue;
-      }
-      if (rune == 0x1B || rune == 0x1D || rune == 0x1C) {
-        expectingFormatPrefix = false;
-        continue;
-      }
-      expectingFormatPrefix = false;
-      buffer.write(String.fromCharCode(rune));
+    final salida = <String>[];
+    final crudas = printData.split(RegExp(r'[\r\n]'));
+    // El voucher siempre termina en separador, así que al partirlo queda
+    // un último trozo vacío que no es una línea del comprobante. Se
+    // descarta solo ese, para no comerse las líneas en blanco reales,
+    // que el pinpad manda como `32 1B 20 0D` y sirven de avance de papel.
+    if (crudas.length > 1 && crudas.last.isEmpty) {
+      crudas.removeLast();
     }
-    if (buffer.isNotEmpty) lines.add(buffer.toString());
 
-    return lines.map((l) => l.trimRight()).join('\n');
+    for (final linea in crudas) {
+      if (linea.isEmpty) {
+        salida.add('');
+        continue;
+      }
+      final primero = linea.codeUnitAt(0);
+
+      if (primero == _marcaControl && linea.length > 1) {
+        final segundo = linea.codeUnitAt(1);
+        // La de imagen no se imprime: se descarta la línea entera.
+        if (segundo == _lineaDeImagen) continue;
+        if (segundo == _lineaEnBlanco) {
+          salida.add('');
+          continue;
+        }
+      }
+
+      if (primero == _fuenteNormal ||
+          primero == _fuenteDoble ||
+          primero == _fuenteNormalInversa ||
+          primero == _fuenteDobleInversa) {
+        salida.add(linea.substring(1).trimRight());
+        continue;
+      }
+
+      salida.add(linea.trimRight());
+    }
+
+    return salida.join('\n');
   }
 }

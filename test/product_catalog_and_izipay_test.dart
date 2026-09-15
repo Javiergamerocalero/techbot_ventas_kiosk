@@ -59,87 +59,91 @@ void main() {
     });
   });
 
-  group('Izipay: datos que exige cada operación', () {
-    // Javier, 2026-09-14: Duplicado respondía "MONEDA NO EXISTE". El
-    // cuerpo viajaba sin ecr_currency_code porque la operación no mueve
-    // dinero. El pinpad la exige igual, en todas.
-    test('toda operación lleva moneda y aplicación', () {
-      final cuerpos = <String, Map<String, dynamic>>{
-        'compra': IzipayService.purchaseBody(12.34),
-        'anulación': IzipayService.voidBody(amount: 12.34, reference: '000123'),
-        'reimpresión': IzipayService.supervisorBody(IzipayService.txReimpresion),
-        'reporte detallado':
-            IzipayService.supervisorBody(IzipayService.txReporteDetallado),
-        'reporte totales':
-            IzipayService.supervisorBody(IzipayService.txReporteTotales),
-        'cierre': IzipayService.supervisorBody(IzipayService.txCierre),
-      };
+  group('Izipay: cada operación manda lo que pide el manual', () {
+    // Las afirmaciones de este grupo salen de los ejemplos de las
+    // Especificaciones Técnicas PMP-API REST v2.3: compra 4.3, anulación
+    // 4.4, reimpresión 4.5, reporte detallado 4.6, totales 4.7, cierre
+    // 4.8 y QR directo 8.2.
 
-      for (final entry in cuerpos.entries) {
+    test('la compra con tarjeta es la 01 con monto y moneda', () {
+      expect(IzipayService.purchaseBody(5.20), {
+        'ecr_aplicacion': 'POS',
+        'ecr_transaccion': '01',
+        'ecr_amount': '520',
+        'ecr_currency_code': '604',
+      });
+    });
+
+    test('la compra con QR es la 67 y avisa que no pida BIN', () {
+      expect(IzipayService.purchaseBody(5.20, mode: IzipayMode.qr), {
+        'ecr_aplicacion': 'POS',
+        'ecr_transaccion': '67',
+        'ecr_amount': '520',
+        'ecr_currency_code': '604',
+        'ecr_data_adicional': '0',
+      });
+    });
+
+    test('la anulación lleva monto, moneda y la referencia original', () {
+      expect(IzipayService.voidBody(amount: 5.20, reference: '8075'), {
+        'ecr_aplicacion': 'POS',
+        'ecr_transaccion': '06',
+        'ecr_amount': '520',
+        'ecr_currency_code': '604',
+        'ecr_data_adicional': '8075',
+      });
+    });
+
+    test('la reimpresión lleva la referencia del voucher', () {
+      expect(
+        IzipayService.supervisorBody(IzipayService.txReimpresion,
+            reference: '2230'),
+        {
+          'ecr_aplicacion': 'POS',
+          'ecr_transaccion': '11',
+          'ecr_data_adicional': '2230',
+        },
+      );
+    });
+
+    test('sin referencia, la reimpresión omite el campo', () {
+      // Mandarlo vacío no es lo mismo que no mandarlo: el pinpad lo
+      // rechaza. Sin el campo reimprime la última del lote.
+      expect(IzipayService.supervisorBody(IzipayService.txReimpresion), {
+        'ecr_aplicacion': 'POS',
+        'ecr_transaccion': '11',
+      });
+    });
+
+    test('reportes y cierre viajan solo con aplicación y transacción', () {
+      // Este es el error que reportó Javier el 2026-09-15: el reporte
+      // detallado fallaba con código 89 porque le agregábamos moneda y
+      // un dato adicional vacío que el manual no pide.
+      for (final tx in [
+        IzipayService.txReporteDetallado,
+        IzipayService.txReporteTotales,
+        IzipayService.txCierre,
+        IzipayService.txReporteDetalladoCierre,
+        IzipayService.txReporteTotalesCierre,
+      ]) {
         expect(
-          entry.value['ecr_currency_code'],
-          '604',
-          reason: '${entry.key} salió sin moneda',
-        );
-        expect(entry.value['ecr_aplicacion'], 'POS', reason: entry.key);
-        expect(
-          (entry.value['ecr_transaccion'] as String).isNotEmpty,
-          isTrue,
-          reason: entry.key,
+          IzipayService.supervisorBody(tx),
+          {'ecr_aplicacion': 'POS', 'ecr_transaccion': tx},
+          reason: 'la transacción $tx salió con campos de más',
         );
       }
     });
 
-    test('compra y anulación llevan monto; las de supervisor no', () {
-      expect(IzipayService.purchaseBody(12.34)['ecr_amount'], '1234');
-      expect(
-        IzipayService.voidBody(amount: 0.10, reference: 'REF1')['ecr_amount'],
-        '010',
-      );
-      expect(
-        IzipayService.supervisorBody(IzipayService.txReimpresion)
-            .containsKey('ecr_amount'),
-        isFalse,
-      );
-    });
-
-    test('la anulación exige la referencia de la compra original', () {
-      expect(
-        IzipayService.voidBody(amount: 1, reference: '000123')['ecr_data_adicional'],
-        '000123',
-      );
-    });
-
-    test('reimpresión y reportes llevan dato adicional; el cierre no', () {
-      expect(
-        IzipayService.supervisorBody(IzipayService.txReimpresion,
-            reference: '000123')['ecr_data_adicional'],
-        '000123',
-      );
-      // Sin referencia, el pinpad reimprime la última del lote.
-      expect(
-        IzipayService.supervisorBody(IzipayService.txReimpresion)['ecr_data_adicional'],
-        '',
-      );
-      expect(
-        IzipayService.supervisorBody(IzipayService.txReporteDetallado)
-            .containsKey('ecr_data_adicional'),
-        isTrue,
-      );
-      expect(
-        IzipayService.supervisorBody(IzipayService.txCierre)
-            .containsKey('ecr_data_adicional'),
-        isFalse,
-      );
-    });
-
-    test('los códigos de operación son los de la PMP-API', () {
+    test('los códigos de operación son los de la tabla del manual', () {
       expect(IzipayService.txCompra, '01');
       expect(IzipayService.txAnulacion, '06');
       expect(IzipayService.txReporteDetallado, '09');
       expect(IzipayService.txReporteTotales, '10');
       expect(IzipayService.txReimpresion, '11');
       expect(IzipayService.txCierre, '12');
+      expect(IzipayService.txReporteDetalladoCierre, '19');
+      expect(IzipayService.txReporteTotalesCierre, '20');
+      expect(IzipayService.txQrDirecto, '67');
     });
   });
 
@@ -150,9 +154,37 @@ void main() {
       expect(IzipayService.amountToEcr(12.34), '1234');
     });
 
-    test('voucher formatter drops format prefixes', () {
+    test('el formateador quita el prefijo de fuente', () {
       final raw = String.fromCharCodes([0x41, 0x48, 0x6F, 0x6C, 0x61, 0x0D]);
       expect(IzipayVoucherFormatter.toPlainText(raw).trim(), 'Hola');
+    });
+
+    test('las cuatro fuentes se imprimen igual', () {
+      for (final fuente in [0x41, 0x42, 0x43, 0x44]) {
+        final raw = String.fromCharCodes([fuente, 0x41, 0x42, 0x0D]);
+        expect(IzipayVoucherFormatter.toPlainText(raw).trim(), 'AB');
+      }
+    });
+
+    test('la línea en blanco sale en blanco, no como un 2', () {
+      // Formato del manual (sección 6): 32 1B 20 0D. El 0x32 es el
+      // carácter '2' y sin tratarlo aparte se imprimía suelto.
+      final raw = String.fromCharCodes([
+        0x41, 0x48, 0x6F, 0x6C, 0x61, 0x0D, // "Hola"
+        0x32, 0x1B, 0x20, 0x0D, //             línea en blanco
+        0x41, 0x46, 0x69, 0x6E, 0x0D, //       "Fin"
+      ]);
+      expect(IzipayVoucherFormatter.toPlainText(raw), 'Hola\n\nFin');
+    });
+
+    test('la línea de imagen no se imprime', () {
+      // 32 1C ZZ 0D, donde ZZ es el logo. Una térmica simple no lo pinta.
+      final raw = String.fromCharCodes([
+        0x41, 0x48, 0x6F, 0x6C, 0x61, 0x0D,
+        0x32, 0x1C, 0x42, 0x0D,
+        0x41, 0x46, 0x69, 0x6E, 0x0D,
+      ]);
+      expect(IzipayVoucherFormatter.toPlainText(raw), 'Hola\nFin');
     });
   });
 }

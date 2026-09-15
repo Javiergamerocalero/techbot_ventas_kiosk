@@ -29,10 +29,14 @@ class IzipayPaymentScreen extends ConsumerStatefulWidget {
   const IzipayPaymentScreen({
     super.key,
     required this.amount,
+    this.mode = IzipayMode.tarjeta,
     this.invoiceData,
   });
 
   final double amount;
+
+  /// Tarjeta o QR: son dos transacciones distintas del pinpad.
+  final IzipayMode mode;
   final Map<String, dynamic>? invoiceData;
 
   @override
@@ -75,6 +79,7 @@ class _IzipayPaymentScreenState extends ConsumerState<IzipayPaymentScreen> {
     try {
       final result = await _service.purchase(
         amount: widget.amount,
+        mode: widget.mode,
         onBinReceived: (bin) async {
           if (!mounted) return false;
           setState(() {

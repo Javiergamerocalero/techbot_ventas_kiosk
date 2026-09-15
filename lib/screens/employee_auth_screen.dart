@@ -157,6 +157,13 @@ class _EmployeeAuthScreenState extends ConsumerState<EmployeeAuthScreen> {
                   SizedBox(height: d.spacingXL),
                   // Per Javier 2026-08-24: agrandar el toggle DNI/Código
                   // para que se lea con facilidad desde el kiosco.
+                  //
+                  // El relleno horizontal va en spacingM y no en spacingL:
+                  // spacingL es 8% del ancho POR LADO, y sumado al ícono y
+                  // a la letra agrandada los dos segmentos no entraban en
+                  // pantalla, así que "Código" se partía letra por letra
+                  // (reportado por Javier el 2026-09-15). Las etiquetas
+                  // además tienen prohibido envolver.
                   SegmentedButton<EmployeeIdentifierType>(
                     style: SegmentedButton.styleFrom(
                       textStyle: TextStyle(
@@ -164,19 +171,20 @@ class _EmployeeAuthScreenState extends ConsumerState<EmployeeAuthScreen> {
                         fontWeight: FontWeight.w600,
                       ),
                       padding: EdgeInsets.symmetric(
-                        horizontal: d.spacingL,
+                        horizontal: d.spacingM,
                         vertical: d.spacingM,
                       ),
                     ),
                     segments: [
                       ButtonSegment(
                         value: EmployeeIdentifierType.dni,
-                        label: const Text('DNI'),
+                        label: const Text('DNI', softWrap: false, maxLines: 1),
                         icon: Icon(Icons.badge, size: d.iconSizeM),
                       ),
                       ButtonSegment(
                         value: EmployeeIdentifierType.employeeCode,
-                        label: const Text('Código'),
+                        label:
+                            const Text('Código', softWrap: false, maxLines: 1),
                         icon: Icon(Icons.tag, size: d.iconSizeM),
                       ),
                     ],

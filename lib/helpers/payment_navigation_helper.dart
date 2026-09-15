@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/config/payment_method.dart';
 import '../screens/cashdro_payment_screen.dart';
 import '../screens/payment_izipay_screen.dart';
+import '../services/izipay_service.dart';
 import '../screens/payment_standby_screen.dart';
 
 /// Helper para manejar la navegación condicional según el método de pago
@@ -12,6 +13,7 @@ class PaymentNavigationHelper {
     required PaymentMethod paymentMethod,
     required Map<String, dynamic> invoiceData,
     required double amount,
+    IzipayMode izipayMode = IzipayMode.tarjeta,
   }) async {
     try {
       print('🚀 PaymentNavigationHelper: Iniciando navegación');
@@ -25,7 +27,7 @@ class PaymentNavigationHelper {
       if (isCashDroPayment(paymentMethod.type)) {
         await _navigateToCashDroPayment(context, paymentMethod, invoiceData, amount);
       } else if (isIzipayPayment(paymentMethod.type)) {
-        await _navigateToIzipayPayment(context, invoiceData, amount);
+        await _navigateToIzipayPayment(context, invoiceData, amount, izipayMode);
       } else {
         await _navigateToStandardPayment(context, paymentMethod, invoiceData);
       }
@@ -60,11 +62,16 @@ class PaymentNavigationHelper {
     BuildContext context,
     Map<String, dynamic> invoiceData,
     double amount,
+    IzipayMode mode,
   ) async {
-    print('💳 Navegando a IzipayPaymentScreen (amount=$amount)');
+    print('💳 Navegando a IzipayPaymentScreen (amount=$amount, ${mode.name})');
     Navigator.of(context).pushNamed(
       IzipayPaymentScreen.routeName,
-      arguments: {'amount': amount, 'invoiceData': invoiceData},
+      arguments: {
+        'amount': amount,
+        'invoiceData': invoiceData,
+        'izipayMode': mode.name,
+      },
     );
   }
 

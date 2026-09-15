@@ -16,6 +16,7 @@ import '../widgets/images/cached_combo_image.dart';
 import '../widgets/payment/payment_method_card.dart';
 import '../providers/config/payment_methods_provider.dart';
 import '../models/config/payment_method.dart';
+import 'package:ventas_kiosko/services/izipay_service.dart';
 import 'invoice_selection_screen.dart';
 import '../helpers/payment_navigation_helper.dart';
 import '../models/config/invoice_type.dart';
@@ -31,6 +32,10 @@ class PaymentConfirmationScreen extends ConsumerStatefulWidget {
 
 class _PaymentConfirmationScreenState extends ConsumerState<PaymentConfirmationScreen> {
   PaymentMethod? _selectedPaymentMethod;
+
+  /// Izipay se ofrece en dos variantes, tarjeta y QR, que en el pinpad
+  /// son transacciones distintas (`01` y `67` del manual PMP-API).
+  IzipayMode _selectedIzipayMode = IzipayMode.tarjeta;
   bool _hasAutoSelected = false;
 
   @override
@@ -376,6 +381,7 @@ class _PaymentConfirmationScreenState extends ConsumerState<PaymentConfirmationS
                         final suspendInvoice = ref.read(electronicInvoiceSuspendedProvider);
                         if (suspendInvoice) {
                           await PaymentNavigationHelper.navigateToPaymentScreen(
+                            izipayMode: _selectedIzipayMode,
                             context: context,
                             paymentMethod: _selectedPaymentMethod!,
                             invoiceData: const InvoiceData(type: InvoiceType.simpleBoleta).toJson(),
@@ -477,29 +483,60 @@ class _PaymentConfirmationScreenState extends ConsumerState<PaymentConfirmationS
     );
   }
 
+  /// Izipay aparece dos veces, una por transaccion del pinpad; el resto
+  /// de metodos, una sola.
+  List<_OpcionDePago> _opcionesDePago(List<PaymentMethod> methods) => [
+        for (final method in methods)
+          if (method.type == PaymentMethodType.izipay) ...[
+            _OpcionDePago(
+              method: method,
+              label: 'Tarjeta',
+              icon: Icons.credit_card,
+              izipayMode: IzipayMode.tarjeta,
+            ),
+            _OpcionDePago(
+              method: method,
+              label: 'QR',
+              icon: Icons.qr_code_2,
+              izipayMode: IzipayMode.qr,
+            ),
+          ] else
+            _OpcionDePago(method: method),
+      ];
+
   Widget _buildPaymentMethodsGrid(
     AppDimensions d,
     ColorScheme colorScheme,
     List<PaymentMethod> methods,
   ) {
+    final opciones = _opcionesDePago(methods);
     return SizedBox(
       height: d.buttonHeight * 0.8, // Altura fija compacta
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: methods.length,
+        itemCount: opciones.length,
         separatorBuilder: (context, index) => SizedBox(width: d.spacingS),
         itemBuilder: (context, index) {
-          final method = methods[index];
+          final opcion = opciones[index];
+          final seleccionada =
+              _selectedPaymentMethod?.type == opcion.method.type &&
+                  (opcion.izipayMode == null ||
+                      opcion.izipayMode == _selectedIzipayMode);
           return SizedBox(
             width: d.screenWidth * 0.4, // Ancho fijo para cada card
             child: PaymentMethodCard(
-              paymentMethod: method,
-              isSelected: _selectedPaymentMethod?.type == method.type,
+              paymentMethod: opcion.method,
+              isSelected: seleccionada,
+              labelOverride: opcion.label,
+              iconOverride: opcion.icon,
               onTap: () {
                 setState(() {
-                  _selectedPaymentMethod = method;
+                  _selectedPaymentMethod = opcion.method;
+                  if (opcion.izipayMode != null) {
+                    _selectedIzipayMode = opcion.izipayMode!;
+                  }
                 });
-                print('💳 Método de pago seleccionado: ${method.type.displayName}');
+                print('💳 Método de pago seleccionado: ${opcion.label ?? opcion.method.type.displayName}');
               },
               dimensions: d,
             ),
@@ -566,4 +603,20 @@ class _PaymentConfirmationScreenState extends ConsumerState<PaymentConfirmationS
       }
     }
   }
+}
+
+/// Una entrada de la fila de métodos de pago. Un método puede ofrecer más
+/// de una: Izipay cobra con tarjeta o con QR.
+class _OpcionDePago {
+  const _OpcionDePago({
+    required this.method,
+    this.label,
+    this.icon,
+    this.izipayMode,
+  });
+
+  final PaymentMethod method;
+  final String? label;
+  final IconData? icon;
+  final IzipayMode? izipayMode;
 }

@@ -9,12 +9,20 @@ class PaymentMethodCard extends StatelessWidget {
   final VoidCallback onTap;
   final AppDimensions dimensions;
 
+  /// Etiqueta e ícono propios, para los métodos que se ofrecen en más de
+  /// una variante. Izipay cobra con tarjeta o con QR, que en el pinpad
+  /// son dos transacciones distintas, y cada una va en su tarjeta.
+  final String? labelOverride;
+  final IconData? iconOverride;
+
   const PaymentMethodCard({
     super.key,
     required this.paymentMethod,
     required this.isSelected,
     required this.onTap,
     required this.dimensions,
+    this.labelOverride,
+    this.iconOverride,
   });
 
   IconData _getIconForPaymentMethod(PaymentMethodType type) {
@@ -75,7 +83,7 @@ class PaymentMethodCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(dimensions.borderRadiusS),
               ),
               child: Icon(
-                _getIconForPaymentMethod(paymentMethod.type),
+                iconOverride ?? _getIconForPaymentMethod(paymentMethod.type),
                 size: dimensions.iconSizeM,
                 color: isSelected
                     ? colorScheme.primary
@@ -92,7 +100,7 @@ class PaymentMethodCard extends StatelessWidget {
                 children: [
                   // Nickname principal
                   Text(
-                    paymentMethod.type.nickname,
+                    labelOverride ?? paymentMethod.type.nickname,
                     style: AppTextStyles.caption(dimensions).copyWith(
                       color: isSelected
                           ? colorScheme.primary

@@ -113,6 +113,9 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         builder: (_) => IzipayPaymentScreen(
           amount: args?['amount'] as double? ?? 0.0,
           invoiceData: args?['invoiceData'] as Map<String, dynamic>?,
+          mode: args?['izipayMode'] == 'qr'
+              ? IzipayMode.qr
+              : IzipayMode.tarjeta,
         ),
       );
     default:
