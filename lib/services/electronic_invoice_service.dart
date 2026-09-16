@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:ventas_kiosko/services/app_log.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../models/cart/cart.dart';
@@ -366,6 +367,7 @@ class ElectronicInvoiceService {
       print('🔐 Authorization Header: Token ${ElectronicInvoiceConfig.apiToken.substring(0, 20)}...');
       print('📦 Enviando ${invoiceJson['items'].length} items');
       
+      final reloj = Stopwatch()..start();
       final response = await http.post(
         Uri.parse(ElectronicInvoiceConfig.apiUrl),
         headers: headers,
@@ -380,6 +382,18 @@ class ElectronicInvoiceService {
       );
       
       print('📡 Status Code: ${response.statusCode}');
+
+      // Queda registrado para la pantalla de logs (pedido de Javier el
+      // 2026-09-16). El token va en los headers, que no se registran.
+      AppLog.registrar(
+        categoria: AppLogCategoria.facturacion,
+        operacion: 'emitir comprobante',
+        request: invoiceJson,
+        response: response.body,
+        ok: response.statusCode == 200 || response.statusCode == 201,
+        detalle: 'HTTP ${response.statusCode} · ${ElectronicInvoiceConfig.apiUrl}',
+        duracion: reloj.elapsed,
+      );
       
       // Verificar respuesta exitosa
       if (response.statusCode == 200 || response.statusCode == 201) {

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ventas_kiosko/models/products/product.dart';
 import 'package:ventas_kiosko/utils/product_catalog.dart';
+import 'package:ventas_kiosko/services/app_log.dart';
 import 'package:ventas_kiosko/services/izipay_service.dart';
 import 'package:ventas_kiosko/services/izipay_voucher_formatter.dart';
 
@@ -185,6 +186,43 @@ void main() {
         0x41, 0x46, 0x69, 0x6E, 0x0D,
       ]);
       expect(IzipayVoucherFormatter.toPlainText(raw), 'Hola\nFin');
+    });
+  });
+
+  group('Registro de operaciones: nunca guarda credenciales', () {
+    test('las claves sensibles salen ocultas', () {
+      final limpio = AppLog.enmascarar({
+        'ecr_usuario': 'izipay',
+        'ecr_password': 'izipay',
+        'token': 'eyJhbGciOiJIUzI1NiJ9.abc',
+        'ecr_amount': '520',
+      }) as Map;
+
+      expect(limpio['ecr_password'], 'oculto');
+      expect(limpio['token'], 'oculto');
+      // Lo que sirve para diagnosticar se conserva tal cual.
+      expect(limpio['ecr_usuario'], 'izipay');
+      expect(limpio['ecr_amount'], '520');
+    });
+
+    test('también las oculta anidadas y dentro de listas', () {
+      final limpio = AppLog.enmascarar({
+        'headers': {'Authorization': 'Bearer abc.def'},
+        'intentos': [
+          {'api_key': 'secreta', 'ok': false},
+        ],
+      }) as Map;
+
+      expect((limpio['headers'] as Map)['Authorization'], 'oculto');
+      expect(((limpio['intentos'] as List).first as Map)['api_key'], 'oculto');
+      expect(((limpio['intentos'] as List).first as Map)['ok'], false);
+    });
+
+    test('tapa el token cuando viaja dentro de un texto suelto', () {
+      expect(
+        AppLog.enmascarar('fallo con Authorization: Bearer eyJhbGciOi.JIUzI1'),
+        'fallo con Authorization: Bearer oculto',
+      );
     });
   });
 }

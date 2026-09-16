@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:ventas_kiosko/providers/config/app_dimensions_provider.dart';
-import 'package:ventas_kiosko/models/config/app_dimensions.dart';
 import 'package:ventas_kiosko/providers/utils/loading_provider.dart';
 import 'package:ventas_kiosko/screens/config/config_globals_screen.dart';
+import 'package:ventas_kiosko/screens/config/config_logs_screen.dart';
 import 'package:ventas_kiosko/screens/config/config_payment_methods_screen.dart';
 import 'package:ventas_kiosko/screens/config/config_printer_screen.dart';
 import 'package:ventas_kiosko/styles/app_styles.dart';
@@ -53,7 +53,7 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
                         height: d.appBarHeight * 0.7,
                       ),
                       Tab(
-                        icon: Icon(Icons.warning, size: d.iconSizeM),
+                        icon: Icon(Icons.receipt_long, size: d.iconSizeM),
                         height: d.appBarHeight * 0.7,
                       ),
                       Tab(
@@ -69,7 +69,7 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
               children: [
                 ConfigPrinterScreen(),
                 ConfigPaymentMethodsScreen(),
-                _buildPlaceholderTab('Transacciones Fallidas', d, colorScheme),
+                const ConfigLogsScreen(),
                 ConfigGlobalsScreen(),
               ],
             ),
@@ -88,22 +88,4 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
     );
   }
 
-  /// Construye un tab placeholder consistente
-  Widget _buildPlaceholderTab(String title, AppDimensions d, ColorScheme colorScheme) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.construction, size: d.iconSizeL * 2, color: colorScheme.onSurface.withValues(alpha: 0.3)),
-          SizedBox(height: d.spacingL),
-          Text(title, style: AppTextStyles.title(d).copyWith(color: colorScheme.onSurface.withValues(alpha: 0.6))),
-          SizedBox(height: d.spacingS),
-          Text(
-            'Próximamente disponible',
-            style: AppTextStyles.body(d).copyWith(color: colorScheme.onSurface.withValues(alpha: 0.5)),
-          ),
-        ],
-      ),
-    );
-  }
 }

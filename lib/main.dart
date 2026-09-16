@@ -7,6 +7,7 @@ import 'package:ventas_kiosko/providers/config/theme_provider.dart';
 import 'package:ventas_kiosko/routes/custom_routes.dart';
 import 'package:ventas_kiosko/routes/kiosk_route_observer.dart';
 import 'package:ventas_kiosko/utils/product_catalog.dart';
+import 'package:ventas_kiosko/services/app_log.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +17,9 @@ Future<void> main() async {
   // El filtro de catálogo se consulta en código síncrono: hay que
   // tener la preferencia leída antes del primer build.
   await ProductCatalog.loadPreference();
+  // El registro de operaciones sobrevive a un reinicio del kiosco: es lo
+  // que Javier mira cuando algo falló y él no estaba delante.
+  await AppLog.cargar();
   runApp(const ProviderScope(child: MainApp()));
 }
 

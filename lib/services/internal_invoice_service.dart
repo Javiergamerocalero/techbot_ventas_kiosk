@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:ventas_kiosko/services/app_log.dart';
 import 'package:http/http.dart' as http;
 
 /// Servicio para manejar facturas internas (reserva y finalización)
@@ -49,6 +50,15 @@ class InternalInvoiceService {
               );
             },
           );
+
+      AppLog.registrar(
+        categoria: AppLogCategoria.facturacion,
+        operacion: 'reservar correlativo',
+        request: requestBody,
+        response: response.body,
+        ok: response.statusCode == 200 || response.statusCode == 201,
+        detalle: 'HTTP ${response.statusCode}',
+      );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = jsonDecode(response.body) as Map<String, dynamic>;
@@ -124,6 +134,15 @@ class InternalInvoiceService {
               );
             },
           );
+
+      AppLog.registrar(
+        categoria: AppLogCategoria.facturacion,
+        operacion: 'finalizar comprobante',
+        request: requestBody,
+        response: response.body,
+        ok: response.statusCode == 200 || response.statusCode == 201,
+        detalle: 'HTTP ${response.statusCode}',
+      );
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body) as Map<String, dynamic>;

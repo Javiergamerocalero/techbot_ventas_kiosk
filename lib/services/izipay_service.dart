@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ventas_kiosko/services/app_log.dart';
 
 /// Cliente del PinPad Izipay P400 vía PMP-API REST (spec v2.3, 2023).
 ///
@@ -167,9 +168,31 @@ class IzipayService {
     // maneje Content-Length y todos los defaults como cualquier
     // cliente HTTP normal. En r4 forzamos Content-Length manual y
     // sigue fallando → NO era el chunked encoding.
-    final resp = await http
-        .post(url, headers: headers, body: bodyStr)
-        .timeout(const Duration(seconds: _boxTimeoutSeconds));
+    final reloj = Stopwatch()..start();
+    final http.Response resp;
+    try {
+      resp = await http
+          .post(url, headers: headers, body: bodyStr)
+          .timeout(const Duration(seconds: _boxTimeoutSeconds));
+    } catch (e) {
+      AppLog.registrar(
+        categoria: AppLogCategoria.izipay,
+        operacion: 'login',
+        request: {'url': url.toString(), 'ecr_usuario': cfg.user},
+        ok: false,
+        detalle: 'no se pudo conectar: $e',
+        duracion: reloj.elapsed,
+      );
+      rethrow;
+    }
+    AppLog.registrar(
+      categoria: AppLogCategoria.izipay,
+      operacion: 'login',
+      request: {'url': url.toString(), 'ecr_usuario': cfg.user},
+      response: {'http': resp.statusCode, 'body': resp.body},
+      ok: resp.statusCode == 200,
+      duracion: reloj.elapsed,
+    );
 
     if (resp.statusCode != 200) {
       // Diagnóstico completo: URL exacta + headers exactos que
@@ -216,22 +239,65 @@ class IzipayService {
         )
         .timeout(timeout ?? const Duration(seconds: _boxTimeoutSeconds));
 
-    var token = await _getToken(cfg);
-    var resp = await doPost(token);
+    // La operación se nombra por su código de transacción, que es lo que
+    // hay que cruzar contra el manual cuando algo falla.
+    final operacion = body['ecr_transaccion'] == null
+        ? path
+        : '$path ${body['ecr_transaccion']}';
+    final reloj = Stopwatch()..start();
 
-    // Token expirado / inválido → reintento con login nuevo.
-    if (resp.statusCode == 401 || resp.statusCode == 403) {
-      token = await _getToken(cfg, forceRefresh: true);
+    http.Response resp;
+    try {
+      var token = await _getToken(cfg);
       resp = await doPost(token);
+
+      // Token expirado / inválido → reintento con login nuevo.
+      if (resp.statusCode == 401 || resp.statusCode == 403) {
+        token = await _getToken(cfg, forceRefresh: true);
+        resp = await doPost(token);
+      }
+    } catch (e) {
+      AppLog.registrar(
+        categoria: AppLogCategoria.izipay,
+        operacion: operacion,
+        request: body,
+        ok: false,
+        detalle: 'no hubo respuesta: $e',
+        duracion: reloj.elapsed,
+      );
+      rethrow;
     }
+
+    final decodificada = _intentarDecodificar(resp.body);
+    final codigo = decodificada?['response_code']?.toString();
+    AppLog.registrar(
+      categoria: AppLogCategoria.izipay,
+      operacion: operacion,
+      request: body,
+      response: decodificada ?? resp.body,
+      ok: resp.statusCode < 400 && (codigo == null || codigo == '00'),
+      detalle: 'HTTP ${resp.statusCode}'
+          '${codigo != null ? ' · código $codigo' : ''}'
+          '${decodificada?['message'] != null ? ' · ${decodificada!['message']}' : ''}',
+      duracion: reloj.elapsed,
+    );
+
     if (resp.statusCode >= 400) {
       throw IzipayException('HTTP ${resp.statusCode}: ${resp.body}');
     }
-    final decoded = jsonDecode(resp.body);
-    if (decoded is! Map<String, dynamic>) {
+    if (decodificada == null) {
       throw IzipayException('Respuesta inesperada del pinpad');
     }
-    return decoded;
+    return decodificada;
+  }
+
+  static Map<String, dynamic>? _intentarDecodificar(String cuerpo) {
+    try {
+      final d = jsonDecode(cuerpo);
+      return d is Map<String, dynamic> ? d : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Test de disponibilidad del pinpad (`POST /test`). Devuelve `true`
