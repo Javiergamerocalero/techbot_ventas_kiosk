@@ -164,7 +164,8 @@ class LicenseService {
 
           // La licencia trae el emisor de comprobantes del cliente en
           // `data.tech_fact`. Va aparte porque el modelo lo guarda plano.
-          final techFact = jsonData['data']?['tech_fact'];
+          final techFact =
+              jsonData['data']?['tech_fact'] ?? jsonData['tech_fact'];
           if (techFact is Map<String, dynamic>) {
             licenseJson['tech_fact_route'] = techFact['route'];
             licenseJson['tech_fact_token'] = techFact['token'];
@@ -414,7 +415,8 @@ class LicenseService {
 
           // La licencia trae el emisor de comprobantes del cliente en
           // `data.tech_fact`. Va aparte porque el modelo lo guarda plano.
-          final techFact = jsonData['data']?['tech_fact'];
+          final techFact =
+              jsonData['data']?['tech_fact'] ?? jsonData['tech_fact'];
           if (techFact is Map<String, dynamic>) {
             licenseJson['tech_fact_route'] = techFact['route'];
             licenseJson['tech_fact_token'] = techFact['token'];

@@ -69,9 +69,20 @@ class License extends _$License {
       await _loadAndApplySavedTheme();
 
       print('🔄 Verificando licencia en servidor para actualizar configuración...');
-      await refreshFromServer(silentMode: true);
+      final refresco = await refreshFromServer(silentMode: true);
 
-      print('✅ Retornando licencia válida');
+      // Lo que acaba de llegar del servidor manda sobre la copia guardada
+      // en el equipo. Antes se refrescaba y acto seguido se devolvía la
+      // copia vieja, que pisaba el estado: cualquier dato nuevo de la
+      // licencia —el emisor de comprobantes, sin ir más lejos— no se veía
+      // hasta el siguiente arranque (Javier, 2026-09-17: "no está
+      // reconociendo esos datos").
+      if (refresco.success && refresco.licenseData != null) {
+        print('✅ Retornando licencia recién traída del servidor');
+        return refresco.licenseData!;
+      }
+
+      print('✅ Retornando licencia local (el servidor no respondió)');
       return currentLicenseData;
     } catch (e, stackTrace) {
       print('❌ Error en build(): $e');
