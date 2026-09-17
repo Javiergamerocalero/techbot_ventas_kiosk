@@ -30,6 +30,17 @@ class ElectronicInvoiceService {
   final String? rutaEmisor;
   final String? tokenEmisor;
 
+  /// La ruta del revendedor NO emite comprobantes: es otra API del mismo
+  /// proveedor, la que usa TECHBOT para administrar emisores. La del
+  /// emisor tiene la forma `.../api/v1/<hash>`.
+  ///
+  /// Comprobado el 2026-09-17 contra las dos rutas con una consulta que
+  /// no emite nada: la del emisor responde con el vocabulario de
+  /// facturación ("Documento no existe", código 24) y la del revendedor
+  /// responde "Falta operación" a cualquier cuerpo.
+  bool get rutaEsDeRevendedor =>
+      rutaEmisor?.contains('/reseller/') ?? false;
+
   bool get emisorConfigurado =>
       (rutaEmisor?.trim().isNotEmpty ?? false) &&
       (tokenEmisor?.trim().isNotEmpty ?? false);
@@ -477,7 +488,10 @@ class ElectronicInvoiceService {
         print('📋 Response: $errorBody');
         
         throw ElectronicInvoiceException(
-          'Error HTTP ${response.statusCode}: $errorBody',
+          'Error HTTP ${response.statusCode}: $errorBody'
+          '${rutaEsDeRevendedor ? ' — OJO: la ruta cargada en la licencia '
+              'es la del revendedor (/api/reseller/), que no emite '
+              'comprobantes. Hace falta la del emisor (/api/v1/).' : ''}',
           statusCode: response.statusCode,
         );
       }
