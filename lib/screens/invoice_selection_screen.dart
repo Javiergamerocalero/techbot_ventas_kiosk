@@ -319,7 +319,17 @@ class _InvoiceSelectionScreenState
                 InvoiceSelectionHeader(
                   d: d,
                   colorScheme: colorScheme,
-                  onBack: () => Navigator.of(context).pop(),
+                  // Con un tipo ya elegido, la flecha vuelve a la lista de
+                  // tipos en vez de salir de la pantalla: así se puede
+                  // cambiar de comprobante sin un botón aparte que ensucie
+                  // la vista (Javier, 2026-09-17).
+                  onBack: () {
+                    if (_selectedType == null) {
+                      Navigator.of(context).pop();
+                    } else {
+                      _changeInvoiceType();
+                    }
+                  },
                 ),
                 Expanded(
                   child: SingleChildScrollView(
@@ -390,26 +400,6 @@ class _InvoiceSelectionScreenState
                             razonSocial: _razonSocial,
                             direccion: _direccion,
                           ),
-                          SizedBox(height: d.spacingM),
-                          // Botón para cambiar tipo de comprobante
-                          OutlinedButton.icon(
-                            onPressed: _changeInvoiceType,
-                            icon: Icon(Icons.swap_horiz, size: d.iconSizeM),
-                            label: Text(
-                              'Seleccionar otro tipo de comprobante',
-                              style: AppTextStyles.body(d),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: d.spacingL,
-                                vertical: d.spacingM,
-                              ),
-                              side: BorderSide(color: colorScheme.primary),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(d.borderRadiusM),
-                              ),
-                            ),
-                          ),
                         ],
                         SizedBox(height: d.spacingL),
 
@@ -427,40 +417,7 @@ class _InvoiceSelectionScreenState
                               ),
                             ),
                             onPressed: _isFormValid()
-                                ? () async {
-                                    final invoiceData = InvoiceData(
-                                      type: _selectedType!,
-                                      dni: _dniController.text,
-                                      dniFullName: _dniFullName,
-                                      ruc: _rucController.text,
-                                      razonSocial: _razonSocial,
-                                      direccion: _direccion,
-                                      isValidated: _isValidated,
-                                    );
-                                    
-                                    print('📄 Tipo de comprobante seleccionado: ${_selectedType!.displayName}');
-                                    print('📄 Datos: $invoiceData');
-
-                                    // Obtener monto total del carrito
-                                    final cart = ref.read(cartNotifierProvider);
-                                    final totalAmount = cart.computedTotalPrice;
-                                    
-                                    print('💰 Monto total del carrito: \$${totalAmount.toStringAsFixed(2)}');
-
-                                    // Validar que tenemos método de pago
-                                    if (selectedPaymentMethod == null) {
-                                      print('❌ Error: No se encontró método de pago seleccionado');
-                                      return;
-                                    }
-
-                                    // Usar PaymentNavigationHelper para navegación condicional
-                                    await PaymentNavigationHelper.navigateToPaymentScreen(
-                                      context: context,
-                                      paymentMethod: selectedPaymentMethod,
-                                      invoiceData: invoiceData.toJson(),
-                                      amount: totalAmount,
-                                    );
-                                  }
+                                ? () => _procederConElPago(selectedPaymentMethod)
                                 : null,
                             child: Text(
                               _isFormValid()
@@ -496,6 +453,49 @@ class _InvoiceSelectionScreenState
       _clearInputs();
     });
     print('📄 Tipo seleccionado: ${type.displayName}');
+
+    // La boleta simple no pide ningún dato, así que quedarse esperando
+    // que el cliente toque además "Proceder con el pago" es un paso de
+    // más: se va derecho al pago (Javier, 2026-09-17). Los otros dos
+    // tipos sí necesitan DNI o RUC antes de continuar.
+    if (type == InvoiceType.simpleBoleta) {
+      final metodo =
+          ModalRoute.of(context)?.settings.arguments as PaymentMethod?;
+      _procederConElPago(metodo);
+    }
+  }
+
+  /// Arma el comprobante con lo que haya en pantalla y salta a la pantalla
+  /// de pago que corresponda al método elegido.
+  Future<void> _procederConElPago(PaymentMethod? metodoDePago) async {
+    if (!_isFormValid()) return;
+
+    final invoiceData = InvoiceData(
+      type: _selectedType!,
+      dni: _dniController.text,
+      dniFullName: _dniFullName,
+      ruc: _rucController.text,
+      razonSocial: _razonSocial,
+      direccion: _direccion,
+      isValidated: _isValidated,
+    );
+
+    print('📄 Tipo de comprobante seleccionado: ${_selectedType!.displayName}');
+
+    final totalAmount = ref.read(cartNotifierProvider).computedTotalPrice;
+
+    if (metodoDePago == null) {
+      print('❌ Error: No se encontró método de pago seleccionado');
+      return;
+    }
+    if (!mounted) return;
+
+    await PaymentNavigationHelper.navigateToPaymentScreen(
+      context: context,
+      paymentMethod: metodoDePago,
+      invoiceData: invoiceData.toJson(),
+      amount: totalAmount,
+    );
   }
 
   Future<void> handleTimer(

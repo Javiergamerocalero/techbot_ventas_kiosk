@@ -7,38 +7,61 @@ import 'package:ventas_kiosko/widgets/utils/linear_timer.dart';
 import '../styles/app_styles.dart';
 import '../providers/config/app_dimensions_provider.dart';
 
-class PaymentSuccessScreen extends ConsumerWidget {
+class PaymentSuccessScreen extends ConsumerStatefulWidget {
   static const routeName = '/payment-success';
 
   const PaymentSuccessScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final d = ref.watch(appDimensionsProvider(context));
-    final colorScheme = Theme.of(context).colorScheme;
-    final timer = ref.watch(timerProvider);
-    final secondary = ref.watch(secondaryDurationProvider);
+  ConsumerState<PaymentSuccessScreen> createState() =>
+      _PaymentSuccessScreenState();
+}
 
-    // Iniciar el temporizador con la duración secundaria al entrar, solo si no está corriendo
+class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
+  /// El temporizador arranca UNA vez al entrar. Antes se reiniciaba en
+  /// cada build mientras estuviera en cero, así que al vencer volvía a
+  /// empezar y la pantalla se quedaba dando vueltas sin volver nunca al
+  /// video (Javier, 2026-09-17).
+  bool _arrancado = false;
+
+  /// Evita que se dispare el regreso más de una vez.
+  bool _volviendo = false;
+
+  @override
+  void initState() {
+    super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (timer <= 0) {
-        ref.read(timerProvider.notifier).start(secondary);
-      }
+      if (!mounted) return;
+      ref
+          .read(timerProvider.notifier)
+          .start(ref.read(secondaryDurationProvider));
+
       // San Fernando: si hay sesión de empleado activa y el hook no
       // fue disparado desde IzipayPaymentScreen (que ya la habría
       // limpiado), registrar la compra ahora con el total del carrito.
       // Idempotente por sesión (registrar limpia el session).
       final totalPrice = ref.read(cartTotalPriceProvider);
       if (totalPrice > 0) {
-        EmployeePurchaseHook.registerIfEmployeeSession(
-          ref,
-          amount: totalPrice,
-        );
+        EmployeePurchaseHook.registerIfEmployeeSession(ref, amount: totalPrice);
       }
+      setState(() => _arrancado = true);
     });
+  }
 
-    if (timer > 0) {
-      handleTimer(context, ref, timer);
+  @override
+  Widget build(BuildContext context) {
+    final d = ref.watch(appDimensionsProvider(context));
+    final colorScheme = Theme.of(context).colorScheme;
+    final timer = ref.watch(timerProvider);
+
+    // Al vencer, de vuelta al video. Se espera a que el temporizador haya
+    // arrancado: al montar todavía puede venir en cero de la pantalla
+    // anterior, y sin esa guarda la pantalla se cerraría al instante.
+    if (_arrancado && timer == 0 && !_volviendo) {
+      _volviendo = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _goHome(context, ref);
+      });
     }
     
     return Scaffold(
@@ -130,16 +153,6 @@ class PaymentSuccessScreen extends ConsumerWidget {
       ),
     );
   }
- Future<void> handleTimer(BuildContext context, WidgetRef ref, int timer) async {
-    if (timer == 0) {
-      if (ModalRoute.of(context)?.isCurrent ?? false) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _goHome(context, ref);
-        });
-      }
-    }
-  }
-
   void _goHome(BuildContext context, WidgetRef ref) {
     ref.read(cartNotifierProvider.notifier).clearCart();
     ref.read(timerProvider.notifier).reset();

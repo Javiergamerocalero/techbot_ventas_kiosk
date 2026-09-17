@@ -106,6 +106,14 @@ class _EmployeeAuthScreenState extends ConsumerState<EmployeeAuthScreen> {
     }
   }
 
+  /// Etiqueta de un segmento. Va en `FittedBox` para que, si el ancho no
+  /// alcanza, la letra se achique en vez de recortarse: en la pantalla de
+  /// Javier "Código" salía como "Códi".
+  Widget _etiqueta(String texto) => FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(texto, softWrap: false, maxLines: 1),
+      );
+
   @override
   Widget build(BuildContext context) {
     final d = ref.watch(appDimensionsProvider(context));
@@ -128,10 +136,13 @@ class _EmployeeAuthScreenState extends ConsumerState<EmployeeAuthScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: d.paddingL,
+          // Relleno mediano y no grande: spacingL es 8% del ancho POR
+          // LADO, o sea un 16% de pantalla que le faltaba al selector
+          // DNI/Código para mostrar su texto (Javier, 2026-09-17).
+          padding: d.paddingM,
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
+              constraints: const BoxConstraints(maxWidth: 640),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -167,25 +178,24 @@ class _EmployeeAuthScreenState extends ConsumerState<EmployeeAuthScreen> {
                   SegmentedButton<EmployeeIdentifierType>(
                     style: SegmentedButton.styleFrom(
                       textStyle: TextStyle(
-                        fontSize: d.fontSizeBody * 1.3,
+                        fontSize: d.fontSizeBody * 1.15,
                         fontWeight: FontWeight.w600,
                       ),
                       padding: EdgeInsets.symmetric(
-                        horizontal: d.spacingM,
+                        horizontal: d.spacingS,
                         vertical: d.spacingM,
                       ),
                     ),
                     segments: [
                       ButtonSegment(
                         value: EmployeeIdentifierType.dni,
-                        label: const Text('DNI', softWrap: false, maxLines: 1),
-                        icon: Icon(Icons.badge, size: d.iconSizeM),
+                        label: _etiqueta('DNI'),
+                        icon: Icon(Icons.badge, size: d.iconSizeS),
                       ),
                       ButtonSegment(
                         value: EmployeeIdentifierType.employeeCode,
-                        label:
-                            const Text('Código', softWrap: false, maxLines: 1),
-                        icon: Icon(Icons.tag, size: d.iconSizeM),
+                        label: _etiqueta('Código'),
+                        icon: Icon(Icons.tag, size: d.iconSizeS),
                       ),
                     ],
                     selected: {_type},
