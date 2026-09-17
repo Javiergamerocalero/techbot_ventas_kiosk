@@ -394,7 +394,11 @@ class ElectronicInvoiceService {
     
     try {
       final headers = {
-        'Authorization': 'Token $tokenEmisor',
+        // El token va CRUDO, sin prefijo. Con "Token " delante el
+        // proveedor responde 401 "Sin autorización"; comprobado contra
+        // la ruta real de San Fernando el 2026-09-17, y es lo que hace
+        // Delibakery citando el manual ("CÓMO USAR LA RUTA Y EL TOKEN").
+        'Authorization': tokenEmisor!,
         'Content-Type': 'application/json',
       };
       

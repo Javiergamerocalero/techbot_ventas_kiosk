@@ -168,11 +168,11 @@ class TicketService {
     ticket += '${spacedText("IGV (18%):", "$currencySymbol ${igvAmount.toStringAsFixed(2)}", width)}\n';
     ticket += '${spacedText("TOTAL A PAGAR:", "$currencySymbol ${cart.finalPrice.toStringAsFixed(2)}", width)}\n';
     ticket += '\n';
-    final cardBrand = paymentData['cardBrand'] ?? paymentData['transactionBrand'] ?? 'Tarjeta';
-    final maskedPAN = paymentData['maskedPAN'] ?? '****0000';
+    // La línea de método de pago sale del ticket (Javier, 2026-09-17);
+    // con ella se fueron la marca y el número enmascarado de la tarjeta,
+    // que no se usaban en ningún otro lado.
     final authNumber = paymentData['authNumber'] ?? paymentData['auth_number'] ?? '';
-    
-    ticket += '${spacedText("Método de Pago:", "$cardBrand $maskedPAN", width)}\n';
+
     ticket += '${spacedText("Monto Recibido:", "$currencySymbol ${cart.finalPrice.toStringAsFixed(2)}", width)}\n';
     ticket += '${spacedText("Vuelto:", "$currencySymbol 0.00", width)}\n';
     
