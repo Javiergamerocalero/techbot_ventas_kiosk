@@ -7,6 +7,7 @@ import 'package:ventas_kiosko/providers/invoice/electronic_invoice_provider.dart
 import 'package:ventas_kiosko/providers/invoice/internal_invoice_provider.dart';
 import 'package:ventas_kiosko/providers/orders/order_provider.dart';
 import 'package:ventas_kiosko/providers/printer/printer_provider.dart';
+import 'package:ventas_kiosko/providers/products/products_provider.dart';
 import 'package:ventas_kiosko/services/app_log.dart';
 import 'package:ventas_kiosko/services/ticket_service.dart';
 
@@ -38,6 +39,18 @@ class PostPaymentFlow {
     int? orderId;
     String? numeroComprobante;
     final problemas = <String>[];
+
+    // ── Carrito en el servidor ───────────────────────────────────────
+    // `order/store` NO recibe las líneas: arma la orden con el carrito
+    // que tiene el servidor para esta licencia. Si alguna línea no llegó
+    // —una validación de stock que no salió, un error suelto— la orden
+    // se crea sin detalle, que es lo que vio Javier el 2026-09-17: la
+    // factura existía pero "Detalles de Orden: Sin resultados".
+    //
+    // Por eso se vuelven a mandar todas las líneas justo antes de crear
+    // la orden. Es idempotente: `cart/manage` fija la cantidad total del
+    // producto, no la incrementa.
+    await _sincronizarCarrito(ref, cart, problemas);
 
     // ── Orden ────────────────────────────────────────────────────────
     try {
@@ -102,6 +115,48 @@ class PostPaymentFlow {
       orderId: orderId,
       numeroComprobante: numeroComprobante,
       problemas: problemas,
+    );
+  }
+
+  /// Deja el carrito del servidor igual al que se va a cobrar.
+  static Future<void> _sincronizarCarrito(
+    WidgetRef ref,
+    Cart cart,
+    List<String> problemas,
+  ) async {
+    final stock = ref.read(stockServiceProvider);
+    final enviadas = <String, dynamic>{};
+
+    for (final item in cart.items) {
+      try {
+        await stock.checkProductStock(
+          item.product.id,
+          item.quantity,
+          variationId: item.selectedVariation?.id,
+        );
+        enviadas['producto ${item.product.id}'] = item.quantity;
+      } catch (e) {
+        problemas.add('no se pudo sincronizar «${item.product.name}»: $e');
+      }
+    }
+
+    for (final item in cart.comboItems) {
+      try {
+        await stock.updateComboCart(item.combo.id, item.quantity);
+        enviadas['combo ${item.combo.id}'] = item.quantity;
+      } catch (e) {
+        problemas.add('no se pudo sincronizar el combo '
+            '«${item.combo.name}»: $e');
+      }
+    }
+
+    AppLog.registrar(
+      categoria: AppLogCategoria.facturacion,
+      operacion: 'sincronizar carrito antes de la orden',
+      request: enviadas,
+      ok: problemas.isEmpty,
+      detalle: '${cart.items.length} productos y '
+          '${cart.comboItems.length} combos',
     );
   }
 
