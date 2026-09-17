@@ -6,6 +6,8 @@ import 'package:ventas_kiosko/providers/config/app_dimensions_provider.dart';
 import 'package:ventas_kiosko/providers/printer/printer_provider.dart';
 import 'package:ventas_kiosko/screens/payment_success_screen.dart';
 import 'package:ventas_kiosko/services/izipay_service.dart';
+import 'package:ventas_kiosko/models/config/invoice_type.dart';
+import 'package:ventas_kiosko/services/post_payment_flow.dart';
 import 'package:ventas_kiosko/services/izipay_voucher_formatter.dart';
 import 'package:ventas_kiosko/styles/app_styles.dart';
 
@@ -99,6 +101,27 @@ class _IzipayPaymentScreenState extends ConsumerState<IzipayPaymentScreen> {
       // Imprimir voucher — no bloqueamos el éxito si la impresión falla.
       await _tryPrintVoucher(result.printData);
 
+      // El voucher es del banco, no es el comprobante de la venta. Falta
+      // registrar la orden, emitir boleta o factura e imprimir el ticket:
+      // este camino se los saltaba y solo salía el voucher (Javier,
+      // 2026-09-16). Va con el carrito todavía cargado, porque el ticket
+      // se arma con él.
+      final datosComprobante = widget.invoiceData == null
+          ? null
+          : InvoiceData.fromJson(widget.invoiceData!);
+      final cierre = await PostPaymentFlow.run(
+        ref: ref,
+        cart: ref.read(cartNotifierProvider),
+        paymentData: _datosDelCobro(result, datosComprobante),
+        paymentMethodName: 'Izipay ${widget.mode.displayName}',
+        invoiceData: datosComprobante,
+      );
+      if (!cierre.todoBien) {
+        // La venta está cobrada: los problemas se avisan, no se revierten.
+        // ignore: avoid_print
+        print('⚠️ Izipay post-pago con avisos: ${cierre.problemas}');
+      }
+
       // San Fernando: registrar la compra contra el validador si hay
       // sesión de empleado activa. Idempotente por sesión.
       await EmployeePurchaseHook.registerIfEmployeeSession(
@@ -136,6 +159,42 @@ class _IzipayPaymentScreenState extends ConsumerState<IzipayPaymentScreen> {
         _errorMessage = _humanizeError(e);
       });
     }
+  }
+
+  /// Traduce la respuesta del pinpad a los campos que esperan el ticket y
+  /// el backend. Los nombres en dos formatos son los que ya usaba el otro
+  /// camino de pago, y TicketService lee unos u otros según el campo.
+  Map<String, dynamic> _datosDelCobro(
+    IzipayPurchaseResult r,
+    InvoiceData? comprobante,
+  ) {
+    final ahora = DateTime.now();
+    final esFactura = comprobante?.type == InvoiceType.facturaElectronica;
+    String dos(int n) => n.toString().padLeft(2, '0');
+    return {
+      'transaction_id': r.traceNumber ?? r.approvalCode,
+      'auth_number': r.approvalCode,
+      'authNumber': r.approvalCode,
+      'masked_pan': r.card,
+      'maskedPAN': r.card,
+      'card_type': r.cardId ?? '',
+      'card_brand': r.cardId ?? '',
+      'cardBrand': r.cardId ?? '',
+      'payment_date': '${dos(ahora.day)}/${dos(ahora.month)}/${ahora.year}',
+      'payment_time': '${dos(ahora.hour)}:${dos(ahora.minute)}',
+      'voucher_number': r.traceNumber ?? '',
+      'batch_number': r.batchNumber ?? '',
+      'terminal_number': r.terminalNumber ?? '',
+      'payment_method': 'Izipay ${widget.mode.displayName}',
+      // Datos del cliente que el ticket imprime en su encabezado.
+      'clientDocType': esFactura ? 'RUC' : 'DNI',
+      'clientDocNumber':
+          (esFactura ? comprobante?.ruc : comprobante?.dni) ?? '',
+      'clientName': (esFactura
+              ? comprobante?.razonSocial
+              : comprobante?.dniFullName) ??
+          'Cliente General',
+    };
   }
 
   Future<void> _tryPrintVoucher(String printData) async {
