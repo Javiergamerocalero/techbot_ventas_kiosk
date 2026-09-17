@@ -22,6 +22,8 @@ _LicenseData _$LicenseDataFromJson(Map<String, dynamic> json) => _LicenseData(
   businessInfo: json['business_info'] == null
       ? null
       : BusinessInfo.fromJson(json['business_info'] as Map<String, dynamic>),
+  techFactRoute: json['tech_fact_route'] as String?,
+  techFactToken: json['tech_fact_token'] as String?,
 );
 
 Map<String, dynamic> _$LicenseDataToJson(_LicenseData instance) =>
@@ -39,4 +41,6 @@ Map<String, dynamic> _$LicenseDataToJson(_LicenseData instance) =>
       'latest_version': instance.latestVersion,
       'download_link': instance.downloadLink,
       'business_info': instance.businessInfo,
+      'tech_fact_route': instance.techFactRoute,
+      'tech_fact_token': instance.techFactToken,
     };

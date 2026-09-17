@@ -2,12 +2,12 @@
 class ElectronicInvoiceConfig {
   // ==================== CONFIGURACIÓN DEL API ====================
   
-  /// URL del endpoint de facturación electrónica
-  /// Según documentación: https://demo.nubefact.com/api/v1/{ruc_emisor}
-  static const String apiUrl = 'https://api.pse.pe/api/v1/edebb255eccd4896b5a52d866a58ca74f1cad8b59d9d428dafab4890fb4c4045';
-  
-  /// Token de autorización para el API
-  static const String apiToken = 'eyJhbGciOiJIUzI1NiJ9.ImEwZTQ2ZjVjMjUzNTRjNmQ5Y2JhNzUyMjc0ZWQ5NWE3NGIxMTZiMGViYzZmNGRjOGFmY2ZmMzIyMWU2MThiNjIi.ng1Kp_0o4x9qqzqmcIydxgjWkoKUh_S1JKaPKqz9Y8g';
+  // La ruta y el token del emisor NO viven acá: vienen en la licencia
+  // (`tech_fact.route` y `tech_fact.token`), porque son de cada cliente.
+  // Estuvieron fijos en este archivo hasta el 2026-09-17 apuntando al
+  // emisor de TECHBOT, y por eso las boletas de San Fernando salieron
+  // con el RUC equivocado. El token quedó además publicado en este
+  // repositorio, que es público: hay que rotarlo.
   
   /// Timeout para las peticiones HTTP (en segundos)
   static const int requestTimeout = 30;

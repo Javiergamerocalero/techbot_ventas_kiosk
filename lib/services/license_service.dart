@@ -160,6 +160,16 @@ class LicenseService {
           // Agregar business_info al licenseJson si está disponible
           if (jsonData['data'] != null && jsonData['data']['business_info'] != null) {
             licenseJson['business_info'] = jsonData['data']['business_info'];
+          }
+
+          // La licencia trae el emisor de comprobantes del cliente en
+          // `data.tech_fact`. Va aparte porque el modelo lo guarda plano.
+          final techFact = jsonData['data']?['tech_fact'];
+          if (techFact is Map<String, dynamic>) {
+            licenseJson['tech_fact_route'] = techFact['route'];
+            licenseJson['tech_fact_token'] = techFact['token'];
+            print('🧾 Emisor de comprobantes en la licencia: '
+                '${techFact['route'] != null ? "SÍ" : "NO"}');
             print('🏢 Business info agregado a licenseJson');
           }
           
@@ -400,6 +410,16 @@ class LicenseService {
           // Agregar business_info al licenseJson si está disponible
           if (jsonData['data'] != null && jsonData['data']['business_info'] != null) {
             licenseJson['business_info'] = jsonData['data']['business_info'];
+          }
+
+          // La licencia trae el emisor de comprobantes del cliente en
+          // `data.tech_fact`. Va aparte porque el modelo lo guarda plano.
+          final techFact = jsonData['data']?['tech_fact'];
+          if (techFact is Map<String, dynamic>) {
+            licenseJson['tech_fact_route'] = techFact['route'];
+            licenseJson['tech_fact_token'] = techFact['token'];
+            print('🧾 Emisor de comprobantes en la licencia: '
+                '${techFact['route'] != null ? "SÍ" : "NO"}');
             print('🏢 Check: Business info agregado a licenseJson');
           }
           

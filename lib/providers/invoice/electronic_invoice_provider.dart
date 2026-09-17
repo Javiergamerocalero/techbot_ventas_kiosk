@@ -4,6 +4,7 @@ import '../../models/cart/cart.dart';
 import '../../models/config/invoice_type.dart';
 import '../../models/invoice/electronic_invoice_response.dart';
 import '../../services/electronic_invoice_service.dart';
+import '../config/license_provider.dart';
 
 part 'electronic_invoice_provider.g.dart';
 
@@ -13,6 +14,17 @@ class ElectronicInvoice extends _$ElectronicInvoice {
   @override
   Map<String, dynamic>? build() => null;
   
+  /// Arma el servicio con el emisor de comprobantes de la licencia
+  /// activa. No hay valores por defecto: si la licencia no los trae, el
+  /// servicio falla al enviar en vez de emitir con el emisor de otro.
+  ElectronicInvoiceService _servicioConEmisorDeLaLicencia() {
+    final licencia = ref.read(licenseProvider).valueOrNull;
+    return ElectronicInvoiceService(
+      rutaEmisor: licencia?.techFactRoute,
+      tokenEmisor: licencia?.techFactToken,
+    );
+  }
+
   /// Genera el JSON de facturación electrónica
   /// 
   Future<Map<String, dynamic>> generateInvoice({
@@ -24,7 +36,7 @@ class ElectronicInvoice extends _$ElectronicInvoice {
     String? paymentMethodName,
   }) async {
     try {
-      final service = ElectronicInvoiceService();
+      final service = _servicioConEmisorDeLaLicencia();
       
       final json = await service.generateInvoiceJson(
         cart: cart,
@@ -56,7 +68,7 @@ class ElectronicInvoice extends _$ElectronicInvoice {
     print('📤 Generando y enviando comprobante...');
     
     try {
-      final service = ElectronicInvoiceService();
+      final service = _servicioConEmisorDeLaLicencia();
       
       final json = await service.generateInvoiceJson(
         cart: cart,

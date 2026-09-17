@@ -19,6 +19,12 @@ class TicketService {
     BusinessInfo? businessInfo,
     int width = 46,
     bool fiscal = true,
+
+    /// Cómo se llama el comprobante emitido: boleta o factura.
+    String nombreDelComprobante = 'BOLETA DE VENTA ELECTRÓNICA',
+
+    /// Serie y correlativo tal como quedaron, por ejemplo "B999-000005".
+    String? numeroDelComprobante,
   }) {
     String ticket = '';
     final companyName = businessInfo?.businessName.isNotEmpty == true 
@@ -44,8 +50,16 @@ class TicketService {
    // ticket += '-' * width + '\n';
     ticket += '${centerTextTruncate("R.U.C. $taxId", width)}\n';
     if (fiscal) {
-      ticket += '${centerTextTruncate("BOLETA DE VENTA ELECTRÓNICA", width)}\n';
-      ticket += '${centerTextTruncate("SERIE: B001 CORRELATIVO: 00000123", width)}\n';
+      // El nombre y el número salen de lo que el servidor reservó y el
+      // emisor confirmó. Estaban escritos a mano —"SERIE: B001
+      // CORRELATIVO: 00000123"— así que todos los tickets salían con
+      // ese número mientras el comprobante real era otro (Javier,
+      // 2026-09-17).
+      ticket += '${centerTextTruncate(nombreDelComprobante, width)}\n';
+      if (numeroDelComprobante != null &&
+          numeroDelComprobante.trim().isNotEmpty) {
+        ticket += '${centerTextTruncate(numeroDelComprobante, width)}\n';
+      }
     } else {
       ticket += '${centerTextTruncate("NOTA DE VENTA", width)}\n';
     }

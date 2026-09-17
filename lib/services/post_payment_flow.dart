@@ -91,12 +91,20 @@ class PostPaymentFlow {
     // el ticket sale vacío.
     try {
       final licencia = await ref.read(licenseProvider.future);
+      final esFactura = invoiceData?.type == InvoiceType.facturaElectronica;
       final ticket = TicketService.generateTicketString(
         cart: cart,
         paymentData: paymentData,
         deviceName: licencia.deviceName,
         businessInfo: ref.read(licenseProvider.notifier).currentBusinessInfo,
         fiscal: !suspendida,
+        nombreDelComprobante: esFactura
+            ? 'FACTURA ELECTRÓNICA'
+            : 'BOLETA DE VENTA ELECTRÓNICA',
+        // El número real del comprobante, el que emitió el proveedor. Si
+        // la emisión falló no se imprime ninguno, que es mejor que
+        // imprimir uno inventado.
+        numeroDelComprobante: numeroComprobante,
       );
       await ref
           .read(printerManagerProvider.notifier)
@@ -182,6 +190,9 @@ class PostPaymentFlow {
       final data = reserva['data'] as Map<String, dynamic>;
       reservaId = data['invoice_id'] as int;
       final numero = data['invoice_number'] as int;
+      // El backend ya devuelve el número con ceros, "B999-000005", que es
+      // como debe verse impreso.
+      final numeroFormateado = data['formatted_number'] as String?;
       var serie = data['series_prefix'] as String?;
       if (serie == null || serie.isEmpty) {
         serie = tipo == 'factura' ? 'F001' : 'B001';
@@ -211,7 +222,9 @@ class PostPaymentFlow {
             invoiceId: reservaId,
             invoiceData: externo.toJson(),
           );
-      return externo.numeroCompleto;
+      return numeroFormateado?.trim().isNotEmpty == true
+          ? numeroFormateado!
+          : externo.numeroCompleto;
     } catch (e) {
       problemas.add('falló la facturación: $e');
       AppLog.registrar(

@@ -15,7 +15,12 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$LicenseData implements DiagnosticableTreeMixin {
 
- int get id;@JsonKey(name: 'tenant_id') int get tenantId; String get type; String get duration; String get key;@JsonKey(name: 'expiration_date') String get expirationDate;@JsonKey(name: 'activation_status') bool get activationStatus;@JsonKey(name: 'device_id') String get deviceId;@JsonKey(name: 'device_name') String get deviceName;@JsonKey(name: 'app_version') String get appVersion;@JsonKey(name: 'latest_version') String get latestVersion;@JsonKey(name: 'download_link') String get downloadLink;@JsonKey(name: 'business_info') BusinessInfo? get businessInfo;
+ int get id;@JsonKey(name: 'tenant_id') int get tenantId; String get type; String get duration; String get key;@JsonKey(name: 'expiration_date') String get expirationDate;@JsonKey(name: 'activation_status') bool get activationStatus;@JsonKey(name: 'device_id') String get deviceId;@JsonKey(name: 'device_name') String get deviceName;@JsonKey(name: 'app_version') String get appVersion;@JsonKey(name: 'latest_version') String get latestVersion;@JsonKey(name: 'download_link') String get downloadLink;@JsonKey(name: 'business_info') BusinessInfo? get businessInfo;/// Ruta y token del emisor de comprobantes de ESTE cliente, tal como
+/// vienen en `data.tech_fact` de la licencia. Sin esto el kiosco
+/// emitiría con el emisor de otro, que fue lo que pasó: las boletas
+/// de San Fernando salieron con el RUC de TECHBOT porque la ruta y
+/// el token estaban fijos en el código (Javier, 2026-09-17).
+@JsonKey(name: 'tech_fact_route') String? get techFactRoute;@JsonKey(name: 'tech_fact_token') String? get techFactToken;
 /// Create a copy of LicenseData
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,21 +34,21 @@ $LicenseDataCopyWith<LicenseData> get copyWith => _$LicenseDataCopyWithImpl<Lice
 void debugFillProperties(DiagnosticPropertiesBuilder properties) {
   properties
     ..add(DiagnosticsProperty('type', 'LicenseData'))
-    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('tenantId', tenantId))..add(DiagnosticsProperty('type', type))..add(DiagnosticsProperty('duration', duration))..add(DiagnosticsProperty('key', key))..add(DiagnosticsProperty('expirationDate', expirationDate))..add(DiagnosticsProperty('activationStatus', activationStatus))..add(DiagnosticsProperty('deviceId', deviceId))..add(DiagnosticsProperty('deviceName', deviceName))..add(DiagnosticsProperty('appVersion', appVersion))..add(DiagnosticsProperty('latestVersion', latestVersion))..add(DiagnosticsProperty('downloadLink', downloadLink))..add(DiagnosticsProperty('businessInfo', businessInfo));
+    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('tenantId', tenantId))..add(DiagnosticsProperty('type', type))..add(DiagnosticsProperty('duration', duration))..add(DiagnosticsProperty('key', key))..add(DiagnosticsProperty('expirationDate', expirationDate))..add(DiagnosticsProperty('activationStatus', activationStatus))..add(DiagnosticsProperty('deviceId', deviceId))..add(DiagnosticsProperty('deviceName', deviceName))..add(DiagnosticsProperty('appVersion', appVersion))..add(DiagnosticsProperty('latestVersion', latestVersion))..add(DiagnosticsProperty('downloadLink', downloadLink))..add(DiagnosticsProperty('businessInfo', businessInfo))..add(DiagnosticsProperty('techFactRoute', techFactRoute))..add(DiagnosticsProperty('techFactToken', techFactToken));
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LicenseData&&(identical(other.id, id) || other.id == id)&&(identical(other.tenantId, tenantId) || other.tenantId == tenantId)&&(identical(other.type, type) || other.type == type)&&(identical(other.duration, duration) || other.duration == duration)&&(identical(other.key, key) || other.key == key)&&(identical(other.expirationDate, expirationDate) || other.expirationDate == expirationDate)&&(identical(other.activationStatus, activationStatus) || other.activationStatus == activationStatus)&&(identical(other.deviceId, deviceId) || other.deviceId == deviceId)&&(identical(other.deviceName, deviceName) || other.deviceName == deviceName)&&(identical(other.appVersion, appVersion) || other.appVersion == appVersion)&&(identical(other.latestVersion, latestVersion) || other.latestVersion == latestVersion)&&(identical(other.downloadLink, downloadLink) || other.downloadLink == downloadLink)&&(identical(other.businessInfo, businessInfo) || other.businessInfo == businessInfo));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LicenseData&&(identical(other.id, id) || other.id == id)&&(identical(other.tenantId, tenantId) || other.tenantId == tenantId)&&(identical(other.type, type) || other.type == type)&&(identical(other.duration, duration) || other.duration == duration)&&(identical(other.key, key) || other.key == key)&&(identical(other.expirationDate, expirationDate) || other.expirationDate == expirationDate)&&(identical(other.activationStatus, activationStatus) || other.activationStatus == activationStatus)&&(identical(other.deviceId, deviceId) || other.deviceId == deviceId)&&(identical(other.deviceName, deviceName) || other.deviceName == deviceName)&&(identical(other.appVersion, appVersion) || other.appVersion == appVersion)&&(identical(other.latestVersion, latestVersion) || other.latestVersion == latestVersion)&&(identical(other.downloadLink, downloadLink) || other.downloadLink == downloadLink)&&(identical(other.businessInfo, businessInfo) || other.businessInfo == businessInfo)&&(identical(other.techFactRoute, techFactRoute) || other.techFactRoute == techFactRoute)&&(identical(other.techFactToken, techFactToken) || other.techFactToken == techFactToken));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,tenantId,type,duration,key,expirationDate,activationStatus,deviceId,deviceName,appVersion,latestVersion,downloadLink,businessInfo);
+int get hashCode => Object.hash(runtimeType,id,tenantId,type,duration,key,expirationDate,activationStatus,deviceId,deviceName,appVersion,latestVersion,downloadLink,businessInfo,techFactRoute,techFactToken);
 
 @override
 String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
-  return 'LicenseData(id: $id, tenantId: $tenantId, type: $type, duration: $duration, key: $key, expirationDate: $expirationDate, activationStatus: $activationStatus, deviceId: $deviceId, deviceName: $deviceName, appVersion: $appVersion, latestVersion: $latestVersion, downloadLink: $downloadLink, businessInfo: $businessInfo)';
+  return 'LicenseData(id: $id, tenantId: $tenantId, type: $type, duration: $duration, key: $key, expirationDate: $expirationDate, activationStatus: $activationStatus, deviceId: $deviceId, deviceName: $deviceName, appVersion: $appVersion, latestVersion: $latestVersion, downloadLink: $downloadLink, businessInfo: $businessInfo, techFactRoute: $techFactRoute, techFactToken: $techFactToken)';
 }
 
 
@@ -54,7 +59,7 @@ abstract mixin class $LicenseDataCopyWith<$Res>  {
   factory $LicenseDataCopyWith(LicenseData value, $Res Function(LicenseData) _then) = _$LicenseDataCopyWithImpl;
 @useResult
 $Res call({
- int id,@JsonKey(name: 'tenant_id') int tenantId, String type, String duration, String key,@JsonKey(name: 'expiration_date') String expirationDate,@JsonKey(name: 'activation_status') bool activationStatus,@JsonKey(name: 'device_id') String deviceId,@JsonKey(name: 'device_name') String deviceName,@JsonKey(name: 'app_version') String appVersion,@JsonKey(name: 'latest_version') String latestVersion,@JsonKey(name: 'download_link') String downloadLink,@JsonKey(name: 'business_info') BusinessInfo? businessInfo
+ int id,@JsonKey(name: 'tenant_id') int tenantId, String type, String duration, String key,@JsonKey(name: 'expiration_date') String expirationDate,@JsonKey(name: 'activation_status') bool activationStatus,@JsonKey(name: 'device_id') String deviceId,@JsonKey(name: 'device_name') String deviceName,@JsonKey(name: 'app_version') String appVersion,@JsonKey(name: 'latest_version') String latestVersion,@JsonKey(name: 'download_link') String downloadLink,@JsonKey(name: 'business_info') BusinessInfo? businessInfo,@JsonKey(name: 'tech_fact_route') String? techFactRoute,@JsonKey(name: 'tech_fact_token') String? techFactToken
 });
 
 
@@ -71,7 +76,7 @@ class _$LicenseDataCopyWithImpl<$Res>
 
 /// Create a copy of LicenseData
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? tenantId = null,Object? type = null,Object? duration = null,Object? key = null,Object? expirationDate = null,Object? activationStatus = null,Object? deviceId = null,Object? deviceName = null,Object? appVersion = null,Object? latestVersion = null,Object? downloadLink = null,Object? businessInfo = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? tenantId = null,Object? type = null,Object? duration = null,Object? key = null,Object? expirationDate = null,Object? activationStatus = null,Object? deviceId = null,Object? deviceName = null,Object? appVersion = null,Object? latestVersion = null,Object? downloadLink = null,Object? businessInfo = freezed,Object? techFactRoute = freezed,Object? techFactToken = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,tenantId: null == tenantId ? _self.tenantId : tenantId // ignore: cast_nullable_to_non_nullable
@@ -86,7 +91,9 @@ as String,appVersion: null == appVersion ? _self.appVersion : appVersion // igno
 as String,latestVersion: null == latestVersion ? _self.latestVersion : latestVersion // ignore: cast_nullable_to_non_nullable
 as String,downloadLink: null == downloadLink ? _self.downloadLink : downloadLink // ignore: cast_nullable_to_non_nullable
 as String,businessInfo: freezed == businessInfo ? _self.businessInfo : businessInfo // ignore: cast_nullable_to_non_nullable
-as BusinessInfo?,
+as BusinessInfo?,techFactRoute: freezed == techFactRoute ? _self.techFactRoute : techFactRoute // ignore: cast_nullable_to_non_nullable
+as String?,techFactToken: freezed == techFactToken ? _self.techFactToken : techFactToken // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 /// Create a copy of LicenseData
@@ -183,10 +190,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'tenant_id')  int tenantId,  String type,  String duration,  String key, @JsonKey(name: 'expiration_date')  String expirationDate, @JsonKey(name: 'activation_status')  bool activationStatus, @JsonKey(name: 'device_id')  String deviceId, @JsonKey(name: 'device_name')  String deviceName, @JsonKey(name: 'app_version')  String appVersion, @JsonKey(name: 'latest_version')  String latestVersion, @JsonKey(name: 'download_link')  String downloadLink, @JsonKey(name: 'business_info')  BusinessInfo? businessInfo)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'tenant_id')  int tenantId,  String type,  String duration,  String key, @JsonKey(name: 'expiration_date')  String expirationDate, @JsonKey(name: 'activation_status')  bool activationStatus, @JsonKey(name: 'device_id')  String deviceId, @JsonKey(name: 'device_name')  String deviceName, @JsonKey(name: 'app_version')  String appVersion, @JsonKey(name: 'latest_version')  String latestVersion, @JsonKey(name: 'download_link')  String downloadLink, @JsonKey(name: 'business_info')  BusinessInfo? businessInfo, @JsonKey(name: 'tech_fact_route')  String? techFactRoute, @JsonKey(name: 'tech_fact_token')  String? techFactToken)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LicenseData() when $default != null:
-return $default(_that.id,_that.tenantId,_that.type,_that.duration,_that.key,_that.expirationDate,_that.activationStatus,_that.deviceId,_that.deviceName,_that.appVersion,_that.latestVersion,_that.downloadLink,_that.businessInfo);case _:
+return $default(_that.id,_that.tenantId,_that.type,_that.duration,_that.key,_that.expirationDate,_that.activationStatus,_that.deviceId,_that.deviceName,_that.appVersion,_that.latestVersion,_that.downloadLink,_that.businessInfo,_that.techFactRoute,_that.techFactToken);case _:
   return orElse();
 
 }
@@ -204,10 +211,10 @@ return $default(_that.id,_that.tenantId,_that.type,_that.duration,_that.key,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'tenant_id')  int tenantId,  String type,  String duration,  String key, @JsonKey(name: 'expiration_date')  String expirationDate, @JsonKey(name: 'activation_status')  bool activationStatus, @JsonKey(name: 'device_id')  String deviceId, @JsonKey(name: 'device_name')  String deviceName, @JsonKey(name: 'app_version')  String appVersion, @JsonKey(name: 'latest_version')  String latestVersion, @JsonKey(name: 'download_link')  String downloadLink, @JsonKey(name: 'business_info')  BusinessInfo? businessInfo)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'tenant_id')  int tenantId,  String type,  String duration,  String key, @JsonKey(name: 'expiration_date')  String expirationDate, @JsonKey(name: 'activation_status')  bool activationStatus, @JsonKey(name: 'device_id')  String deviceId, @JsonKey(name: 'device_name')  String deviceName, @JsonKey(name: 'app_version')  String appVersion, @JsonKey(name: 'latest_version')  String latestVersion, @JsonKey(name: 'download_link')  String downloadLink, @JsonKey(name: 'business_info')  BusinessInfo? businessInfo, @JsonKey(name: 'tech_fact_route')  String? techFactRoute, @JsonKey(name: 'tech_fact_token')  String? techFactToken)  $default,) {final _that = this;
 switch (_that) {
 case _LicenseData():
-return $default(_that.id,_that.tenantId,_that.type,_that.duration,_that.key,_that.expirationDate,_that.activationStatus,_that.deviceId,_that.deviceName,_that.appVersion,_that.latestVersion,_that.downloadLink,_that.businessInfo);case _:
+return $default(_that.id,_that.tenantId,_that.type,_that.duration,_that.key,_that.expirationDate,_that.activationStatus,_that.deviceId,_that.deviceName,_that.appVersion,_that.latestVersion,_that.downloadLink,_that.businessInfo,_that.techFactRoute,_that.techFactToken);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -224,10 +231,10 @@ return $default(_that.id,_that.tenantId,_that.type,_that.duration,_that.key,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id, @JsonKey(name: 'tenant_id')  int tenantId,  String type,  String duration,  String key, @JsonKey(name: 'expiration_date')  String expirationDate, @JsonKey(name: 'activation_status')  bool activationStatus, @JsonKey(name: 'device_id')  String deviceId, @JsonKey(name: 'device_name')  String deviceName, @JsonKey(name: 'app_version')  String appVersion, @JsonKey(name: 'latest_version')  String latestVersion, @JsonKey(name: 'download_link')  String downloadLink, @JsonKey(name: 'business_info')  BusinessInfo? businessInfo)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id, @JsonKey(name: 'tenant_id')  int tenantId,  String type,  String duration,  String key, @JsonKey(name: 'expiration_date')  String expirationDate, @JsonKey(name: 'activation_status')  bool activationStatus, @JsonKey(name: 'device_id')  String deviceId, @JsonKey(name: 'device_name')  String deviceName, @JsonKey(name: 'app_version')  String appVersion, @JsonKey(name: 'latest_version')  String latestVersion, @JsonKey(name: 'download_link')  String downloadLink, @JsonKey(name: 'business_info')  BusinessInfo? businessInfo, @JsonKey(name: 'tech_fact_route')  String? techFactRoute, @JsonKey(name: 'tech_fact_token')  String? techFactToken)?  $default,) {final _that = this;
 switch (_that) {
 case _LicenseData() when $default != null:
-return $default(_that.id,_that.tenantId,_that.type,_that.duration,_that.key,_that.expirationDate,_that.activationStatus,_that.deviceId,_that.deviceName,_that.appVersion,_that.latestVersion,_that.downloadLink,_that.businessInfo);case _:
+return $default(_that.id,_that.tenantId,_that.type,_that.duration,_that.key,_that.expirationDate,_that.activationStatus,_that.deviceId,_that.deviceName,_that.appVersion,_that.latestVersion,_that.downloadLink,_that.businessInfo,_that.techFactRoute,_that.techFactToken);case _:
   return null;
 
 }
@@ -239,7 +246,7 @@ return $default(_that.id,_that.tenantId,_that.type,_that.duration,_that.key,_tha
 @JsonSerializable()
 
 class _LicenseData with DiagnosticableTreeMixin implements LicenseData {
-  const _LicenseData({this.id = -1, @JsonKey(name: 'tenant_id') this.tenantId = -1, this.type = '', this.duration = '', this.key = '', @JsonKey(name: 'expiration_date') this.expirationDate = '', @JsonKey(name: 'activation_status') this.activationStatus = false, @JsonKey(name: 'device_id') this.deviceId = '', @JsonKey(name: 'device_name') this.deviceName = '', @JsonKey(name: 'app_version') this.appVersion = '', @JsonKey(name: 'latest_version') this.latestVersion = '', @JsonKey(name: 'download_link') this.downloadLink = '', @JsonKey(name: 'business_info') this.businessInfo});
+  const _LicenseData({this.id = -1, @JsonKey(name: 'tenant_id') this.tenantId = -1, this.type = '', this.duration = '', this.key = '', @JsonKey(name: 'expiration_date') this.expirationDate = '', @JsonKey(name: 'activation_status') this.activationStatus = false, @JsonKey(name: 'device_id') this.deviceId = '', @JsonKey(name: 'device_name') this.deviceName = '', @JsonKey(name: 'app_version') this.appVersion = '', @JsonKey(name: 'latest_version') this.latestVersion = '', @JsonKey(name: 'download_link') this.downloadLink = '', @JsonKey(name: 'business_info') this.businessInfo, @JsonKey(name: 'tech_fact_route') this.techFactRoute, @JsonKey(name: 'tech_fact_token') this.techFactToken});
   factory _LicenseData.fromJson(Map<String, dynamic> json) => _$LicenseDataFromJson(json);
 
 @override@JsonKey() final  int id;
@@ -255,6 +262,13 @@ class _LicenseData with DiagnosticableTreeMixin implements LicenseData {
 @override@JsonKey(name: 'latest_version') final  String latestVersion;
 @override@JsonKey(name: 'download_link') final  String downloadLink;
 @override@JsonKey(name: 'business_info') final  BusinessInfo? businessInfo;
+/// Ruta y token del emisor de comprobantes de ESTE cliente, tal como
+/// vienen en `data.tech_fact` de la licencia. Sin esto el kiosco
+/// emitiría con el emisor de otro, que fue lo que pasó: las boletas
+/// de San Fernando salieron con el RUC de TECHBOT porque la ruta y
+/// el token estaban fijos en el código (Javier, 2026-09-17).
+@override@JsonKey(name: 'tech_fact_route') final  String? techFactRoute;
+@override@JsonKey(name: 'tech_fact_token') final  String? techFactToken;
 
 /// Create a copy of LicenseData
 /// with the given fields replaced by the non-null parameter values.
@@ -270,21 +284,21 @@ Map<String, dynamic> toJson() {
 void debugFillProperties(DiagnosticPropertiesBuilder properties) {
   properties
     ..add(DiagnosticsProperty('type', 'LicenseData'))
-    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('tenantId', tenantId))..add(DiagnosticsProperty('type', type))..add(DiagnosticsProperty('duration', duration))..add(DiagnosticsProperty('key', key))..add(DiagnosticsProperty('expirationDate', expirationDate))..add(DiagnosticsProperty('activationStatus', activationStatus))..add(DiagnosticsProperty('deviceId', deviceId))..add(DiagnosticsProperty('deviceName', deviceName))..add(DiagnosticsProperty('appVersion', appVersion))..add(DiagnosticsProperty('latestVersion', latestVersion))..add(DiagnosticsProperty('downloadLink', downloadLink))..add(DiagnosticsProperty('businessInfo', businessInfo));
+    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('tenantId', tenantId))..add(DiagnosticsProperty('type', type))..add(DiagnosticsProperty('duration', duration))..add(DiagnosticsProperty('key', key))..add(DiagnosticsProperty('expirationDate', expirationDate))..add(DiagnosticsProperty('activationStatus', activationStatus))..add(DiagnosticsProperty('deviceId', deviceId))..add(DiagnosticsProperty('deviceName', deviceName))..add(DiagnosticsProperty('appVersion', appVersion))..add(DiagnosticsProperty('latestVersion', latestVersion))..add(DiagnosticsProperty('downloadLink', downloadLink))..add(DiagnosticsProperty('businessInfo', businessInfo))..add(DiagnosticsProperty('techFactRoute', techFactRoute))..add(DiagnosticsProperty('techFactToken', techFactToken));
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LicenseData&&(identical(other.id, id) || other.id == id)&&(identical(other.tenantId, tenantId) || other.tenantId == tenantId)&&(identical(other.type, type) || other.type == type)&&(identical(other.duration, duration) || other.duration == duration)&&(identical(other.key, key) || other.key == key)&&(identical(other.expirationDate, expirationDate) || other.expirationDate == expirationDate)&&(identical(other.activationStatus, activationStatus) || other.activationStatus == activationStatus)&&(identical(other.deviceId, deviceId) || other.deviceId == deviceId)&&(identical(other.deviceName, deviceName) || other.deviceName == deviceName)&&(identical(other.appVersion, appVersion) || other.appVersion == appVersion)&&(identical(other.latestVersion, latestVersion) || other.latestVersion == latestVersion)&&(identical(other.downloadLink, downloadLink) || other.downloadLink == downloadLink)&&(identical(other.businessInfo, businessInfo) || other.businessInfo == businessInfo));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LicenseData&&(identical(other.id, id) || other.id == id)&&(identical(other.tenantId, tenantId) || other.tenantId == tenantId)&&(identical(other.type, type) || other.type == type)&&(identical(other.duration, duration) || other.duration == duration)&&(identical(other.key, key) || other.key == key)&&(identical(other.expirationDate, expirationDate) || other.expirationDate == expirationDate)&&(identical(other.activationStatus, activationStatus) || other.activationStatus == activationStatus)&&(identical(other.deviceId, deviceId) || other.deviceId == deviceId)&&(identical(other.deviceName, deviceName) || other.deviceName == deviceName)&&(identical(other.appVersion, appVersion) || other.appVersion == appVersion)&&(identical(other.latestVersion, latestVersion) || other.latestVersion == latestVersion)&&(identical(other.downloadLink, downloadLink) || other.downloadLink == downloadLink)&&(identical(other.businessInfo, businessInfo) || other.businessInfo == businessInfo)&&(identical(other.techFactRoute, techFactRoute) || other.techFactRoute == techFactRoute)&&(identical(other.techFactToken, techFactToken) || other.techFactToken == techFactToken));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,tenantId,type,duration,key,expirationDate,activationStatus,deviceId,deviceName,appVersion,latestVersion,downloadLink,businessInfo);
+int get hashCode => Object.hash(runtimeType,id,tenantId,type,duration,key,expirationDate,activationStatus,deviceId,deviceName,appVersion,latestVersion,downloadLink,businessInfo,techFactRoute,techFactToken);
 
 @override
 String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
-  return 'LicenseData(id: $id, tenantId: $tenantId, type: $type, duration: $duration, key: $key, expirationDate: $expirationDate, activationStatus: $activationStatus, deviceId: $deviceId, deviceName: $deviceName, appVersion: $appVersion, latestVersion: $latestVersion, downloadLink: $downloadLink, businessInfo: $businessInfo)';
+  return 'LicenseData(id: $id, tenantId: $tenantId, type: $type, duration: $duration, key: $key, expirationDate: $expirationDate, activationStatus: $activationStatus, deviceId: $deviceId, deviceName: $deviceName, appVersion: $appVersion, latestVersion: $latestVersion, downloadLink: $downloadLink, businessInfo: $businessInfo, techFactRoute: $techFactRoute, techFactToken: $techFactToken)';
 }
 
 
@@ -295,7 +309,7 @@ abstract mixin class _$LicenseDataCopyWith<$Res> implements $LicenseDataCopyWith
   factory _$LicenseDataCopyWith(_LicenseData value, $Res Function(_LicenseData) _then) = __$LicenseDataCopyWithImpl;
 @override @useResult
 $Res call({
- int id,@JsonKey(name: 'tenant_id') int tenantId, String type, String duration, String key,@JsonKey(name: 'expiration_date') String expirationDate,@JsonKey(name: 'activation_status') bool activationStatus,@JsonKey(name: 'device_id') String deviceId,@JsonKey(name: 'device_name') String deviceName,@JsonKey(name: 'app_version') String appVersion,@JsonKey(name: 'latest_version') String latestVersion,@JsonKey(name: 'download_link') String downloadLink,@JsonKey(name: 'business_info') BusinessInfo? businessInfo
+ int id,@JsonKey(name: 'tenant_id') int tenantId, String type, String duration, String key,@JsonKey(name: 'expiration_date') String expirationDate,@JsonKey(name: 'activation_status') bool activationStatus,@JsonKey(name: 'device_id') String deviceId,@JsonKey(name: 'device_name') String deviceName,@JsonKey(name: 'app_version') String appVersion,@JsonKey(name: 'latest_version') String latestVersion,@JsonKey(name: 'download_link') String downloadLink,@JsonKey(name: 'business_info') BusinessInfo? businessInfo,@JsonKey(name: 'tech_fact_route') String? techFactRoute,@JsonKey(name: 'tech_fact_token') String? techFactToken
 });
 
 
@@ -312,7 +326,7 @@ class __$LicenseDataCopyWithImpl<$Res>
 
 /// Create a copy of LicenseData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? tenantId = null,Object? type = null,Object? duration = null,Object? key = null,Object? expirationDate = null,Object? activationStatus = null,Object? deviceId = null,Object? deviceName = null,Object? appVersion = null,Object? latestVersion = null,Object? downloadLink = null,Object? businessInfo = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? tenantId = null,Object? type = null,Object? duration = null,Object? key = null,Object? expirationDate = null,Object? activationStatus = null,Object? deviceId = null,Object? deviceName = null,Object? appVersion = null,Object? latestVersion = null,Object? downloadLink = null,Object? businessInfo = freezed,Object? techFactRoute = freezed,Object? techFactToken = freezed,}) {
   return _then(_LicenseData(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,tenantId: null == tenantId ? _self.tenantId : tenantId // ignore: cast_nullable_to_non_nullable
@@ -327,7 +341,9 @@ as String,appVersion: null == appVersion ? _self.appVersion : appVersion // igno
 as String,latestVersion: null == latestVersion ? _self.latestVersion : latestVersion // ignore: cast_nullable_to_non_nullable
 as String,downloadLink: null == downloadLink ? _self.downloadLink : downloadLink // ignore: cast_nullable_to_non_nullable
 as String,businessInfo: freezed == businessInfo ? _self.businessInfo : businessInfo // ignore: cast_nullable_to_non_nullable
-as BusinessInfo?,
+as BusinessInfo?,techFactRoute: freezed == techFactRoute ? _self.techFactRoute : techFactRoute // ignore: cast_nullable_to_non_nullable
+as String?,techFactToken: freezed == techFactToken ? _self.techFactToken : techFactToken // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

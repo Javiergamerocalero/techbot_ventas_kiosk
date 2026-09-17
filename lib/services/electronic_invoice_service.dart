@@ -13,6 +13,27 @@ import '../config/electronic_invoice_config.dart';
 
 /// Servicio para generar JSON de facturación electrónica
 class ElectronicInvoiceService {
+  /// Emisor de comprobantes de ESTE cliente, tal como viene en la
+  /// licencia (`tech_fact.route` y `tech_fact.token`).
+  ///
+  /// No hay valores por defecto a propósito. Antes estaban fijos en el
+  /// código apuntando al emisor de TECHBOT, así que las boletas de San
+  /// Fernando se emitieron con el RUC equivocado sin que nada avisara
+  /// (Javier, 2026-09-17). Si la licencia no los trae, la emisión falla
+  /// con un mensaje claro: es preferible no emitir a emitir a nombre de
+  /// otro contribuyente.
+  const ElectronicInvoiceService({
+    required this.rutaEmisor,
+    required this.tokenEmisor,
+  });
+
+  final String? rutaEmisor;
+  final String? tokenEmisor;
+
+  bool get emisorConfigurado =>
+      (rutaEmisor?.trim().isNotEmpty ?? false) &&
+      (tokenEmisor?.trim().isNotEmpty ?? false);
+
   /// Genera el JSON completo para facturación electrónica
   /// 
   Future<Map<String, dynamic>> generateInvoiceJson({
@@ -354,22 +375,35 @@ class ElectronicInvoiceService {
   
   /// Envía el JSON al API de facturación electrónica
   Future<ElectronicInvoiceResponse> sendToApi(Map<String, dynamic> invoiceJson) async {
+    if (!emisorConfigurado) {
+      AppLog.registrar(
+        categoria: AppLogCategoria.facturacion,
+        operacion: 'emitir comprobante',
+        ok: false,
+        detalle: 'la licencia no trae el emisor de comprobantes '
+            '(tech_fact.route / tech_fact.token)',
+      );
+      throw ElectronicInvoiceException(
+        'Esta licencia no tiene configurado el emisor de comprobantes. '
+        'Cargar la ruta y el token en Qapp antes de facturar.',
+      );
+    }
+
     print('\n📤 Enviando comprobante al API de facturación electrónica...');
-    print('🌐 URL: ${ElectronicInvoiceConfig.apiUrl}');
+    print('🌐 URL: $rutaEmisor');
     
     try {
       final headers = {
-        'Authorization': 'Token ${ElectronicInvoiceConfig.apiToken}',
+        'Authorization': 'Token $tokenEmisor',
         'Content-Type': 'application/json',
       };
       
       print('🔑 Token configurado');
-      print('🔐 Authorization Header: Token ${ElectronicInvoiceConfig.apiToken.substring(0, 20)}...');
       print('📦 Enviando ${invoiceJson['items'].length} items');
       
       final reloj = Stopwatch()..start();
       final response = await http.post(
-        Uri.parse(ElectronicInvoiceConfig.apiUrl),
+        Uri.parse(rutaEmisor!),
         headers: headers,
         body: jsonEncode(invoiceJson),
       ).timeout(
@@ -391,7 +425,7 @@ class ElectronicInvoiceService {
         request: invoiceJson,
         response: response.body,
         ok: response.statusCode == 200 || response.statusCode == 201,
-        detalle: 'HTTP ${response.statusCode} · ${ElectronicInvoiceConfig.apiUrl}',
+        detalle: 'HTTP ${response.statusCode} · $rutaEmisor',
         duracion: reloj.elapsed,
       );
       

@@ -21,6 +21,14 @@ abstract class LicenseData with _$LicenseData {
     @JsonKey(name: 'latest_version') @Default('') String latestVersion,
     @JsonKey(name: 'download_link') @Default('') String downloadLink,
     @JsonKey(name: 'business_info') BusinessInfo? businessInfo,
+
+    /// Ruta y token del emisor de comprobantes de ESTE cliente, tal como
+    /// vienen en `data.tech_fact` de la licencia. Sin esto el kiosco
+    /// emitiría con el emisor de otro, que fue lo que pasó: las boletas
+    /// de San Fernando salieron con el RUC de TECHBOT porque la ruta y
+    /// el token estaban fijos en el código (Javier, 2026-09-17).
+    @JsonKey(name: 'tech_fact_route') String? techFactRoute,
+    @JsonKey(name: 'tech_fact_token') String? techFactToken,
   }) = _LicenseData;
 
   factory LicenseData.fromJson(Map<String, dynamic> json) => _$LicenseDataFromJson(json);
