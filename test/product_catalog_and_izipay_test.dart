@@ -1,6 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ventas_kiosko/models/products/product.dart';
 import 'package:ventas_kiosko/utils/product_catalog.dart';
+import 'package:ventas_kiosko/screens/config/izipay_result_screen.dart';
 import 'package:ventas_kiosko/services/app_log.dart';
 import 'package:ventas_kiosko/services/izipay_service.dart';
 import 'package:ventas_kiosko/services/izipay_voucher_formatter.dart';
@@ -223,6 +225,49 @@ void main() {
         AppLog.enmascarar('fallo con Authorization: Bearer eyJhbGciOi.JIUzI1'),
         'fallo con Authorization: Bearer oculto',
       );
+    });
+  });
+
+  group('El voucher entra sin partirse', () {
+    /// Mide de verdad: arma una fila de 38 caracteres con el tamaño que
+    /// calcula VoucherFit y comprueba que no se pase del ancho.
+    double anchoReal(String texto, double tamano) {
+      final pintor = TextPainter(
+        text: TextSpan(
+          text: texto,
+          style: TextStyle(fontFamily: 'monospace', fontSize: tamano),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      return pintor.width;
+    }
+
+    test('una fila completa cabe en anchos de kiosco habituales', () {
+      final fila = 'X' * VoucherFit.columnas;
+      for (final ancho in [320.0, 360.0, 480.0, 600.0, 800.0]) {
+        final tamano = VoucherFit.tamanoQueEntra(ancho);
+        expect(
+          anchoReal(fila, tamano),
+          lessThanOrEqualTo(ancho),
+          reason: 'con $ancho de ancho la fila se pasa y se parte en dos',
+        );
+      }
+    });
+
+    test('un ancho absurdo no rompe nada', () {
+      expect(VoucherFit.tamanoQueEntra(0), greaterThan(0));
+      expect(VoucherFit.tamanoQueEntra(-5), greaterThan(0));
+      expect(VoucherFit.tamanoQueEntra(double.infinity), greaterThan(0));
+      // En una pantalla enorme la letra no crece sin control.
+      expect(VoucherFit.tamanoQueEntra(5000), VoucherFit.tamanoMaximo);
+    });
+
+    test('el cálculo sale de medir la fuente, no de una constante', () {
+      // En las pruebas la fuente es cuadrada (cada carácter mide un em),
+      // así que la fila de 38 ocupa 38 veces el tamaño de letra. Si el
+      // cálculo estuviera atado a una constante pensada para una fuente
+      // real, acá daría de más y el texto se partiría.
+      expect(VoucherFit.tamanoQueEntra(380), closeTo(10, 0.01));
     });
   });
 }

@@ -18,6 +18,13 @@ class ConfigLogsScreen extends ConsumerStatefulWidget {
 class _ConfigLogsScreenState extends ConsumerState<ConfigLogsScreen> {
   AppLogCategoria? _filtro;
 
+  /// Esta pantalla no se lee desde lejos como el resto del kiosco: se lee
+  /// de cerca, buscando una operación entre muchas. Por eso va con letra
+  /// bastante más chica que la escala general (Javier, 2026-09-16).
+  static const _escalaTitulo = 0.72;
+  static const _escalaDetalle = 0.62;
+  static const _escalaCuerpo = 0.58;
+
   @override
   Widget build(BuildContext context) {
     final d = ref.watch(appDimensionsProvider(context));
@@ -34,10 +41,10 @@ class _ConfigLogsScreenState extends ConsumerState<ConfigLogsScreen> {
           children: [
             Padding(
               padding: EdgeInsets.fromLTRB(
-                d.horizontalPadding,
                 d.spacingM,
-                d.horizontalPadding,
                 d.spacingS,
+                d.spacingS,
+                d.spacingXS,
               ),
               child: Row(
                 children: [
@@ -61,13 +68,13 @@ class _ConfigLogsScreenState extends ConsumerState<ConfigLogsScreen> {
                   ),
                   IconButton(
                     tooltip: 'Copiar todo',
-                    icon: Icon(Icons.copy_all, size: d.iconSizeM),
+                    icon: Icon(Icons.copy_all, size: d.iconSizeS),
                     onPressed: todas.isEmpty ? null : _copiarTodo,
                   ),
                   IconButton(
                     tooltip: 'Borrar registro',
                     icon: Icon(Icons.delete_outline,
-                        size: d.iconSizeM, color: cs.error),
+                        size: d.iconSizeS, color: cs.error),
                     onPressed: todas.isEmpty ? null : _confirmarBorrado,
                   ),
                 ],
@@ -79,11 +86,11 @@ class _ConfigLogsScreenState extends ConsumerState<ConfigLogsScreen> {
                   ? _vacio(d, cs)
                   : ListView.separated(
                       padding: EdgeInsets.symmetric(
-                        horizontal: d.horizontalPadding,
-                        vertical: d.spacingS,
+                        horizontal: d.spacingM,
+                        vertical: d.spacingXS,
                       ),
                       itemCount: entradas.length,
-                      separatorBuilder: (_, __) => SizedBox(height: d.spacingS),
+                      separatorBuilder: (_, __) => SizedBox(height: d.spacingXS),
                       itemBuilder: (context, i) =>
                           _tarjeta(entradas[i], d, cs),
                     ),
@@ -109,9 +116,16 @@ class _ConfigLogsScreenState extends ConsumerState<ConfigLogsScreen> {
         selected: activo,
         onSelected: (_) => setState(() => _filtro = categoria),
         selectedColor: cs.primary,
-        labelStyle: AppTextStyles.caption(d).copyWith(
+        labelStyle: TextStyle(
+          fontSize: d.fontSizeCaption * _escalaDetalle,
           color: activo ? cs.onPrimary : cs.onSurface,
           fontWeight: FontWeight.w600,
+        ),
+        visualDensity: VisualDensity.compact,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        padding: EdgeInsets.symmetric(
+          horizontal: d.spacingS,
+          vertical: d.spacingXS * 0.5,
         ),
       ),
     );
@@ -159,27 +173,35 @@ class _ConfigLogsScreenState extends ConsumerState<ConfigLogsScreen> {
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          tilePadding: EdgeInsets.symmetric(horizontal: d.spacingM),
+          tilePadding: EdgeInsets.symmetric(horizontal: d.spacingS),
           childrenPadding: EdgeInsets.fromLTRB(
             d.spacingM,
             0,
             d.spacingM,
             d.spacingM,
           ),
+          dense: true,
+          visualDensity: VisualDensity.compact,
           leading: Icon(
             e.ok ? Icons.check_circle_outline : Icons.error_outline,
             color: color,
-            size: d.iconSizeM,
+            size: d.iconSizeS,
           ),
           title: Text(
             e.operacion,
-            style: AppTextStyles.body(d).copyWith(fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: d.fontSizeBody * _escalaTitulo,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurface,
+            ),
           ),
           subtitle: Text(
             '${e.horaCorta} · ${e.categoria.etiqueta}'
             '${e.milisegundos != null ? ' · ${e.milisegundos} ms' : ''}'
             '${e.detalle != null ? '\n${e.detalle}' : ''}',
-            style: AppTextStyles.caption(d).copyWith(
+            style: TextStyle(
+              fontSize: d.fontSizeCaption * _escalaDetalle,
+              height: 1.25,
               color: cs.onSurface.withValues(alpha: 0.7),
             ),
           ),
@@ -189,7 +211,12 @@ class _ConfigLogsScreenState extends ConsumerState<ConfigLogsScreen> {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(
-                icon: Icon(Icons.copy, size: d.iconSizeS),
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  textStyle:
+                      TextStyle(fontSize: d.fontSizeCaption * _escalaDetalle),
+                ),
+                icon: Icon(Icons.copy, size: d.iconSizeS * 0.8),
                 label: const Text('Copiar esta'),
                 onPressed: () => _copiar(
                   '${e.horaCorta} ${e.categoria.etiqueta} ${e.operacion}\n'
@@ -213,7 +240,8 @@ class _ConfigLogsScreenState extends ConsumerState<ConfigLogsScreen> {
       children: [
         Text(
           titulo,
-          style: AppTextStyles.caption(d).copyWith(
+          style: TextStyle(
+            fontSize: d.fontSizeCaption * _escalaDetalle,
             fontWeight: FontWeight.bold,
             color: cs.primary,
           ),
@@ -231,7 +259,8 @@ class _ConfigLogsScreenState extends ConsumerState<ConfigLogsScreen> {
             contenido,
             style: TextStyle(
               fontFamily: 'monospace',
-              fontSize: d.fontSizeCaption * 0.95,
+              fontSize: d.fontSizeCaption * _escalaCuerpo,
+              height: 1.3,
               color: cs.onSurface,
             ),
           ),
