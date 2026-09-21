@@ -388,9 +388,18 @@ class _PaymentConfirmationScreenState extends ConsumerState<PaymentConfirmationS
                             amount: cart.computedTotalPrice,
                           );
                         } else {
+                          // El modo (tarjeta o QR) tiene que viajar junto
+                          // con el método: la pantalla de comprobante es la
+                          // que después navega al pago, y sin esto la
+                          // elección de QR se perdía y el kiosco cobraba
+                          // siempre con la transacción de tarjeta
+                          // (Javier, 2026-09-21).
                           Navigator.of(context).pushNamed(
                             InvoiceSelectionScreen.routeName,
-                            arguments: _selectedPaymentMethod,
+                            arguments: {
+                              'paymentMethod': _selectedPaymentMethod,
+                              'izipayMode': _selectedIzipayMode.name,
+                            },
                           );
                         }
                       }

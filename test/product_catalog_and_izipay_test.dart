@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ventas_kiosko/models/products/product.dart';
 import 'package:ventas_kiosko/utils/product_catalog.dart';
 import 'package:ventas_kiosko/screens/config/izipay_result_screen.dart';
+import 'package:ventas_kiosko/models/config/payment_method.dart';
+import 'package:ventas_kiosko/screens/invoice_selection_screen.dart';
 import 'package:ventas_kiosko/services/app_log.dart';
 import 'package:ventas_kiosko/services/izipay_service.dart';
 import 'package:ventas_kiosko/services/izipay_voucher_formatter.dart';
@@ -268,6 +270,37 @@ void main() {
       // cálculo estuviera atado a una constante pensada para una fuente
       // real, acá daría de más y el texto se partiría.
       expect(VoucherFit.tamanoQueEntra(380), closeTo(10, 0.01));
+    });
+  });
+
+  group('La elección de QR no se pierde entre pantallas', () {
+    const metodo = PaymentMethod(type: PaymentMethodType.izipay);
+
+    test('el modo viaja en los argumentos de la ruta', () {
+      final args = {'paymentMethod': metodo, 'izipayMode': 'qr'};
+      expect(ArgumentosDePago.metodo(args), metodo);
+      expect(ArgumentosDePago.modoIzipay(args), IzipayMode.qr);
+    });
+
+    test('con tarjeta, o sin el dato, queda en tarjeta', () {
+      expect(
+        ArgumentosDePago.modoIzipay(
+          {'paymentMethod': metodo, 'izipayMode': 'tarjeta'},
+        ),
+        IzipayMode.tarjeta,
+      );
+      expect(
+        ArgumentosDePago.modoIzipay({'paymentMethod': metodo}),
+        IzipayMode.tarjeta,
+      );
+      expect(ArgumentosDePago.modoIzipay(null), IzipayMode.tarjeta);
+    });
+
+    test('sigue aceptando el formato viejo, el método suelto', () {
+      // Esta pantalla se abría pasando solo el método de pago. Si algún
+      // camino quedó así, tiene que seguir funcionando.
+      expect(ArgumentosDePago.metodo(metodo), metodo);
+      expect(ArgumentosDePago.modoIzipay(metodo), IzipayMode.tarjeta);
     });
   });
 }

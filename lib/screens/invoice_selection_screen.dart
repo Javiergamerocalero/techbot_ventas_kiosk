@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ventas_kiosko/services/izipay_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/utils/timer_provider.dart';
 import '../providers/config/license_provider.dart';
@@ -68,7 +69,7 @@ class _InvoiceSelectionScreenState
     // Inicializar servicio de validación y logging
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Log payment method received (only once)
-      final selectedPaymentMethod = ModalRoute.of(context)?.settings.arguments as PaymentMethod?;
+      final selectedPaymentMethod = _metodoDePago();
       if (selectedPaymentMethod == null) {
         print('⚠️ No se recibió método de pago');
       } else {
@@ -254,6 +255,12 @@ class _InvoiceSelectionScreenState
     }
   }
 
+  PaymentMethod? _metodoDePago() =>
+      ArgumentosDePago.metodo(ModalRoute.of(context)?.settings.arguments);
+
+  IzipayMode _modoIzipay() =>
+      ArgumentosDePago.modoIzipay(ModalRoute.of(context)?.settings.arguments);
+
   bool _isFormValid() {
     if (_selectedType == null) return false;
 
@@ -306,7 +313,7 @@ class _InvoiceSelectionScreenState
     final timer = ref.watch(timerProvider);
 
     // Recibir método de pago seleccionado (sin logging para evitar spam en rebuilds)
-    final selectedPaymentMethod = ModalRoute.of(context)?.settings.arguments as PaymentMethod?;
+    final selectedPaymentMethod = _metodoDePago();
 
     handleTimer(context, ref, timer);
 
@@ -459,8 +466,7 @@ class _InvoiceSelectionScreenState
     // más: se va derecho al pago (Javier, 2026-09-17). Los otros dos
     // tipos sí necesitan DNI o RUC antes de continuar.
     if (type == InvoiceType.simpleBoleta) {
-      final metodo =
-          ModalRoute.of(context)?.settings.arguments as PaymentMethod?;
+      final metodo = _metodoDePago();
       _procederConElPago(metodo);
     }
   }
@@ -495,6 +501,7 @@ class _InvoiceSelectionScreenState
       paymentMethod: metodoDePago,
       invoiceData: invoiceData.toJson(),
       amount: totalAmount,
+      izipayMode: _modoIzipay(),
     );
   }
 
@@ -510,5 +517,33 @@ class _InvoiceSelectionScreenState
         });
       }
     }
+  }
+}
+
+/// Lee los argumentos con los que se abre la pantalla de comprobante.
+///
+/// Existe suelto y no dentro del State para poder probarlo: el modo de
+/// Izipay se perdía justo acá —la pantalla recibía solo el método de
+/// pago— y el kiosco terminaba cobrando con la transacción de tarjeta
+/// aunque el cliente hubiera elegido QR (Javier, 2026-09-21).
+class ArgumentosDePago {
+  const ArgumentosDePago._();
+
+  /// Acepta el formato nuevo (mapa con método y modo) y el viejo (el
+  /// método suelto), por si alguna pantalla todavía empuja así.
+  static PaymentMethod? metodo(Object? argumentos) {
+    if (argumentos is PaymentMethod) return argumentos;
+    if (argumentos is Map && argumentos['paymentMethod'] is PaymentMethod) {
+      return argumentos['paymentMethod'] as PaymentMethod;
+    }
+    return null;
+  }
+
+  /// Tarjeta o QR. Si no viene el dato, tarjeta.
+  static IzipayMode modoIzipay(Object? argumentos) {
+    if (argumentos is Map && argumentos['izipayMode'] == IzipayMode.qr.name) {
+      return IzipayMode.qr;
+    }
+    return IzipayMode.tarjeta;
   }
 }
