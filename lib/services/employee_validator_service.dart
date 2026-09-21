@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:ventas_kiosko/services/app_log.dart';
 
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -117,6 +118,14 @@ class EmployeeValidatorService {
     final cfg = await _config();
     final uri = Uri.parse('${cfg.baseUrl}/employees/$employeeId/purchases');
     final amountCents = (amount * 100).round();
+    final reloj = Stopwatch()..start();
+    final cuerpo = {
+      'tenantId': cfg.tenantId,
+      'amountCents': amountCents,
+      'currency': 'PEN',
+      if (cfg.kioskName.isNotEmpty) 'kioskName': cfg.kioskName,
+      if (externalReference != null) 'externalReference': externalReference,
+    };
     try {
       final resp = await http
           .post(
@@ -125,21 +134,35 @@ class EmployeeValidatorService {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
             },
-            body: jsonEncode({
-              'tenantId': cfg.tenantId,
-              'amountCents': amountCents,
-              'currency': 'PEN',
-              if (cfg.kioskName.isNotEmpty) 'kioskName': cfg.kioskName,
-              if (externalReference != null)
-                'externalReference': externalReference,
-            }),
+            body: jsonEncode(cuerpo),
           )
           .timeout(_defaultTimeout);
+
+      // Queda a la vista en la pantalla de registro: era el único paso
+      // post-pago que fallaba en silencio (Javier, 2026-09-21).
+      AppLog.registrar(
+        categoria: AppLogCategoria.empleados,
+        operacion: 'registrar compra del empleado',
+        request: {'url': uri.toString(), ...cuerpo},
+        response: resp.body,
+        ok: resp.statusCode == 201,
+        detalle: 'HTTP ${resp.statusCode}',
+        duracion: reloj.elapsed,
+      );
+
       if (resp.statusCode == 201) return const PurchaseRecordResult.ok();
       return PurchaseRecordResult.failed(
         'HTTP ${resp.statusCode}: ${resp.body}',
       );
     } catch (e) {
+      AppLog.registrar(
+        categoria: AppLogCategoria.empleados,
+        operacion: 'registrar compra del empleado',
+        request: {'url': uri.toString(), ...cuerpo},
+        ok: false,
+        detalle: 'no hubo respuesta: $e',
+        duracion: reloj.elapsed,
+      );
       return PurchaseRecordResult.failed(e.toString());
     }
   }

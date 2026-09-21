@@ -182,6 +182,7 @@ class AppLog {
 enum AppLogCategoria {
   izipay('Izipay'),
   facturacion('Facturación'),
+  empleados('Empleados'),
   otros('Otros');
 
   const AppLogCategoria(this.etiqueta);
