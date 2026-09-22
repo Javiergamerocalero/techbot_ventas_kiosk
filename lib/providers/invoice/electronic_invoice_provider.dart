@@ -89,6 +89,12 @@ class ElectronicInvoice extends _$ElectronicInvoice {
     }
   }
   
+  /// Detalle de la venta para finalizar el comprobante en Qapp.
+  /// Lo arma el mismo servicio que emitió el comprobante, así las
+  /// líneas y los totales del panel coinciden con los de SUNAT.
+  Map<String, dynamic> detalleDeLaVenta(Cart cart) =>
+      _servicioConEmisorDeLaLicencia().detalleDeLaVenta(cart);
+
   /// Limpia el estado de la factura
   void resetInvoice() {
     state = null;

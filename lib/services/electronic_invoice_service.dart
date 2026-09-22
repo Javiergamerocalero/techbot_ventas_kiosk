@@ -223,8 +223,10 @@ class ElectronicInvoiceService {
       final product = cartItem.product;
       final quantity = cartItem.quantity;
       
-      // Precio unitario con IGV (precio final con descuento aplicado)
-      final precioUnitario = product.finalPrice;
+      // Precio de lista con IGV. El descuento de la oferta viaja aparte,
+      // en `descuento`: si acá fuera el precio ya rebajado, la línea
+      // restaría el descuento dos veces y el comprobante salía en 0.00.
+      final precioUnitario = product.priceAsDouble;
       
       // Descuento por item (si aplica) - SIN IGV para InvoiceItem.fromCartItem()
       final descuentoItem = product.hasDiscount 
@@ -246,8 +248,9 @@ class ElectronicInvoiceService {
       final combo = comboItem.combo;
       final quantity = comboItem.quantity;
       
-      // Precio unitario con IGV (precio final con descuento aplicado)
-      final double precioUnitario = combo.hasDiscount ? combo.discountedPriceAsDouble : combo.priceAsDouble;
+      // Precio de lista con IGV, por lo mismo que en los productos: el
+      // descuento del combo se resta una sola vez, en `descuento`.
+      final double precioUnitario = combo.priceAsDouble;
       
       // Descuento por item (si aplica) - SIN IGV para InvoiceItem.fromCartItem()
       final descuentoItem = combo.hasDiscount 
@@ -279,8 +282,10 @@ class ElectronicInvoiceService {
       final product = item.product;
       final quantity = item.quantity;
       
-      // Precio unitario con IGV (precio final con descuento aplicado)
-      final precioUnitario = product.finalPrice;
+      // Precio de lista con IGV. El descuento de la oferta viaja aparte,
+      // en `descuento`: si acá fuera el precio ya rebajado, la línea
+      // restaría el descuento dos veces y el comprobante salía en 0.00.
+      final precioUnitario = product.priceAsDouble;
       
       // Descuento por item (si aplica) - DEBE CALCULARSE SOBRE PRECIO SIN IGV
       final descuentoItem = product.hasDiscount 
@@ -302,8 +307,9 @@ class ElectronicInvoiceService {
       final combo = comboItem.combo;
       final quantity = comboItem.quantity;
       
-      // Precio unitario con IGV (precio final con descuento aplicado)
-      final double precioUnitario = combo.hasDiscount ? combo.discountedPriceAsDouble : combo.priceAsDouble;
+      // Precio de lista con IGV, por lo mismo que en los productos: el
+      // descuento del combo se resta una sola vez, en `descuento`.
+      final double precioUnitario = combo.priceAsDouble;
       
       // Descuento por item (si aplica) - DEBE CALCULARSE SOBRE PRECIO SIN IGV
       final descuentoItem = combo.hasDiscount 
@@ -384,6 +390,51 @@ class ElectronicInvoiceService {
     return observaciones.join('\n');
   }
   
+  /// Detalle de la venta con la forma que espera Qapp al finalizar el
+  /// comprobante (`invoice_data` de `PATCH /api/invoices/finalize`).
+  ///
+  /// Sin esto la factura queda creada pero **sin líneas**: en el panel
+  /// aparece "Detalles de Orden: Sin resultados" (Javier, 2026-09-21).
+  /// Los números salen del mismo cálculo que el comprobante que se
+  /// acaba de emitir, no de una cuenta aparte, para que coincidan.
+  Map<String, dynamic> detalleDeLaVenta(Cart cart) {
+    final items = _mapCartToInvoiceItems(cart);
+    final totales = _calculateTotals(cart);
+
+    double aDouble(String? v) => double.tryParse(v ?? '') ?? 0.0;
+    double dosDecimales(double v) => double.parse(v.toStringAsFixed(2));
+
+    // Descuento por línea. Ojo: `totalDescuento` de _calculateTotals es
+    // el del cupón, no la suma de las líneas; el cupón viaja aparte en
+    // `coupon_amount`, así que sumarlo acá lo contaría dos veces.
+    final descuentoDeLineas = items.fold<double>(
+      0.0,
+      (suma, it) => suma + aDouble(it.descuento),
+    );
+
+    final cupon = cart.appliedCoupon;
+
+    return {
+      'items': [
+        for (final it in items)
+          {
+            'name': it.descripcion,
+            'quantity': int.tryParse(it.cantidad) ?? aDouble(it.cantidad),
+            // Sin IGV, igual que en el comprobante emitido.
+            'unit_price': aDouble(it.valorUnitario),
+            'subtotal': aDouble(it.subtotal),
+            'discount': aDouble(it.descuento),
+          },
+      ],
+      'subtotal': aDouble(totales['totalGravada']),
+      'total_item_discount': dosDecimales(descuentoDeLineas),
+      'coupon_code': cupon?.code ?? '',
+      'coupon_amount': dosDecimales(cart.couponDiscount),
+      'total_tax': aDouble(totales['totalIgv']),
+      'grand_total': aDouble(totales['total']),
+    };
+  }
+
   /// Envía el JSON al API de facturación electrónica
   Future<ElectronicInvoiceResponse> sendToApi(Map<String, dynamic> invoiceJson) async {
     if (!emisorConfigurado) {

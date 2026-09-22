@@ -95,8 +95,14 @@ extension CartExtensions on Cart {
   }
 
   /// Calcula el precio final con cupón aplicado.
+  ///
+  /// `totalPrice` ya suma cada línea con el precio de oferta
+  /// (`Product.finalPrice`), así que volver a restarle `totalDiscounts`
+  /// cobraba el descuento dos veces: un producto con 50% de descuento
+  /// terminaba en S/ 0.00. Acá solo se restan los descuentos que todavía
+  /// no están metidos en el precio de línea: el del carrito y el cupón.
   double get finalPrice {
-    final basePrice = totalPrice - totalDiscounts;
+    final basePrice = totalPrice - cartDiscount;
     return (basePrice - couponDiscount).clamp(0.0, double.infinity);
   }
 

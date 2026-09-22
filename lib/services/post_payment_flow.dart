@@ -218,9 +218,20 @@ class PostPaymentFlow {
         return null;
       }
 
+      // Al finalizar hay que mandar el detalle de la venta: es de ahí de
+      // donde el panel saca las líneas de la orden. Mandando solo la
+      // respuesta del proveedor, la factura quedaba sin detalle
+      // ("Detalles de Orden: Sin resultados", Javier 2026-09-21).
+      //
+      // Se mandan las dos cosas: el detalle que espera Qapp y, debajo,
+      // lo que devolvió el proveedor, que trae los enlaces al PDF y al
+      // XML, el código QR y la aceptación de SUNAT.
+      final detalle = ref
+          .read(electronicInvoiceProvider.notifier)
+          .detalleDeLaVenta(cart);
       await ref.read(internalInvoiceProvider.notifier).finalize(
             invoiceId: reservaId,
-            invoiceData: externo.toJson(),
+            invoiceData: {...detalle, ...externo.toJson()},
           );
       return numeroFormateado?.trim().isNotEmpty == true
           ? numeroFormateado!
