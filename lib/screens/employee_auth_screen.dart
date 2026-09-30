@@ -241,13 +241,24 @@ class _EmployeeAuthScreenState extends ConsumerState<EmployeeAuthScreen> {
                           horizontal: d.spacingL, vertical: d.spacingM),
                     ),
                     icon: _submitting
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child:
-                                CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.arrow_forward),
-                    label: Text(_submitting ? 'Validando...' : 'Continuar'),
+                        ? SizedBox(
+                            width: d.fontSizeButton,
+                            height: d.fontSizeButton,
+                            child: const CircularProgressIndicator(
+                                strokeWidth: 2))
+                        : Icon(Icons.arrow_forward, size: d.fontSizeButton),
+                    // El label usaba el tamaño por defecto del FilledButton
+                    // (muy chico frente al resto de la pantalla, que escala
+                    // con `d`). Se le da el tamaño de botón del sistema
+                    // responsive. Pedido de Javier el 2026-09-30, poniendo
+                    // San Fernando en producción.
+                    label: Text(
+                      _submitting ? 'Validando...' : 'Continuar',
+                      style: TextStyle(
+                        fontSize: d.fontSizeButton,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ],
               ),
