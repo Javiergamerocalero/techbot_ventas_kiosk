@@ -206,9 +206,11 @@ class ProductsScreen extends ConsumerWidget {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // Logo a la izquierda
+                          // Logo del cliente. Para esta versión de San
+                          // Fernando va su logotipo, no el de Q.app
+                          // (Javier 2026-09-30, versión personalizada).
                           Image.asset(
-                            'assets/images/logo_grey.png',
+                            'assets/images/sanfernando_logo.png',
                             height: d.imageSizeL * 1.8,
                             fit: BoxFit.contain,
                           ),
